@@ -192,6 +192,9 @@ async def main(page: ft.Page) -> None:
         if login_required:
             session_token = await page.client_storage.get_async("session_token")
             if not session_token or not auth_manager.validate_session(session_token):
+                if session_token:
+                    await page.client_storage.remove_async("session_token")
+
                 async def on_login_success(token):
                     _session_info = auth_manager.active_sessions.get(token, {})
                     app.current_username = _session_info.get("username")

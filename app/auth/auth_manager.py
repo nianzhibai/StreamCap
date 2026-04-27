@@ -1,11 +1,13 @@
 import hashlib
 import secrets
-from typing import Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
 
 from ..utils.logger import logger
 
 
 class AuthManager:
+    SESSION_DURATION = timedelta(days=31)
     
     def __init__(self, app):
         self.app = app
@@ -41,6 +43,15 @@ class AuthManager:
     def _generate_session_token(self) -> str:
         """Generate session token"""
         return secrets.token_hex(16)
+
+    def _build_session_info(self, username: str, is_admin: bool) -> dict[str, Any]:
+        created_at = datetime.now(timezone.utc)
+        return {
+            "username": username,
+            "is_admin": is_admin,
+            "created_at": created_at,
+            "expires_at": created_at + self.SESSION_DURATION,
+        }
     
     async def authenticate(self, username: str, password: str) -> tuple[bool, Optional[str]]:
         web_auth = self.config_manager.load_web_auth_config()
@@ -53,17 +64,30 @@ class AuthManager:
                 
                 if hashed_password == user["password_hash"]:
                     session_token = self._generate_session_token()
-                    self.active_sessions[session_token] = {
-                        "username": username,
-                        "is_admin": user.get("is_admin", False)
-                    }
+                    self.active_sessions[session_token] = self._build_session_info(
+                        username=username,
+                        is_admin=user.get("is_admin", False),
+                    )
                     return True, session_token
         
         return False, None
     
     def validate_session(self, session_token: str) -> bool:
         """Validate session token"""
-        return session_token in self.active_sessions
+        session_info = self.active_sessions.get(session_token)
+        if not session_info:
+            return False
+
+        expires_at = session_info.get("expires_at")
+        if not isinstance(expires_at, datetime):
+            self.active_sessions.pop(session_token, None)
+            return False
+
+        if expires_at <= datetime.now(timezone.utc):
+            self.active_sessions.pop(session_token, None)
+            return False
+
+        return True
     
     def logout(self, session_token: str) -> bool:
         if session_token in self.active_sessions:
