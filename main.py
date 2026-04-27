@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing
 import os
+from collections.abc import Callable
 
 import flet as ft
 from dotenv import load_dotenv
@@ -27,6 +28,19 @@ class GlobalState:
 
 
 global_state = GlobalState()
+
+
+def resolve_web_auth_state(config_manager, auth_manager, session_token: str | None) -> tuple[bool, str | None]:
+    login_required = config_manager.get_config_value("login_required", False)
+
+    if not login_required:
+        return False, "admin"
+
+    if not session_token or not auth_manager.validate_session(session_token):
+        return True, None
+
+    session_info = auth_manager.active_sessions.get(session_token, {})
+    return False, session_info.get("username")
 
 
 def setup_window(page: ft.Page, app: App, is_web: bool) -> None:
@@ -65,17 +79,23 @@ def get_route_handler() -> dict[str, str]:
     }
 
 
-def handle_route_change(page: ft.Page, app: App) -> callable:
+def handle_route_change(page: ft.Page, app: App, ensure_web_auth: Callable | None = None) -> callable:
     route_map = get_route_handler()
 
-    def route_change(e: ft.RouteChangeEvent) -> None:
-        tr = ft.TemplateRoute(e.route)
+    async def process_route_change(route: str) -> None:
+        if app.is_web_mode and ensure_web_auth and not await ensure_web_auth():
+            return
+
+        tr = ft.TemplateRoute(route)
         page_name = route_map.get(tr.route)
         if page_name:
-            page.run_task(app.switch_page, page_name)
+            await app.switch_page(page_name)
         else:
-            logger.warning(f"Unknown route: {e.route}, redirecting to /")
+            logger.warning(f"Unknown route: {route}, redirecting to /")
             page.go("/")
+
+    def route_change(e: ft.RouteChangeEvent) -> None:
+        page.run_task(process_route_change, e.route)
 
     return route_change
 
@@ -142,16 +162,17 @@ async def main(page: ft.Page) -> None:
     
     save_progress_overlay = SaveProgressOverlay(app)
     page.overlay.append(save_progress_overlay.overlay)
-    
+
     async def load_app():
         if is_web:
             setup_responsive_layout(page, app)
             page.on_resize = handle_page_resize(page, app)
             page.on_disconnect = handle_disconnect(page, app)
 
-        page.add(app.complete_page)
+        if app.complete_page not in page.controls:
+            page.add(app.complete_page)
         
-        page.on_route_change = handle_route_change(page, app)
+        page.on_route_change = handle_route_change(page, app, ensure_web_auth if is_web else None)
         page.window.prevent_close = True
         page.window.on_event = handle_window_event(page, app, save_progress_overlay)
         if is_web:
@@ -182,37 +203,60 @@ async def main(page: ft.Page) -> None:
         else:
             page.go(page.route)
 
+    async def show_login_page():
+        async def on_login_success(token):
+            auth_manager.session_token = token
+            session_info = auth_manager.active_sessions.get(token, {})
+            app.current_username = session_info.get("username")
+
+            page.clean()
+            await load_app()
+
+        page.clean()
+        login_page = LoginPage(page, auth_manager, on_login_success)
+        page.add(login_page.get_view())
+        page.update()
+
+    async def ensure_web_auth() -> bool:
+        app.settings.refresh_runtime_configs()
+        session_token = await page.client_storage.get_async("session_token")
+        should_show_login, username = resolve_web_auth_state(app.config_manager, auth_manager, session_token)
+
+        if should_show_login:
+            if session_token:
+                await page.client_storage.remove_async("session_token")
+            auth_manager.session_token = None
+            app.current_username = None
+            await show_login_page()
+            return False
+
+        auth_manager.session_token = session_token
+        app.current_username = username
+        return True
+
+    async def handle_security_change(_, __):
+        app.settings.refresh_runtime_configs()
+
+        if not await ensure_web_auth():
+            return
+
+        if app.complete_page not in page.controls:
+            page.clean()
+            await load_app()
+            return
+
+        if app.current_page == app.settings:
+            await app.switch_page("settings")
+    
     if is_web:
         auth_manager = AuthManager(app)
         app.auth_manager = auth_manager
+        app.ensure_web_auth = ensure_web_auth
         await auth_manager.initialize()
-        
-        login_required = app.settings.get_config_value("login_required", False)
-        
-        if login_required:
-            session_token = await page.client_storage.get_async("session_token")
-            if not session_token or not auth_manager.validate_session(session_token):
-                if session_token:
-                    await page.client_storage.remove_async("session_token")
+        page.pubsub.subscribe_topic("security", handle_security_change)
 
-                async def on_login_success(token):
-                    _session_info = auth_manager.active_sessions.get(token, {})
-                    app.current_username = _session_info.get("username")
-                    
-                    page.clean()
-                    await load_app()
-                
-                page.clean()
-                
-                login_page = LoginPage(page, auth_manager, on_login_success)
-                page.add(login_page.get_view())
-                return
-            else:
-                auth_manager.session_token = session_token
-                session_info = auth_manager.active_sessions.get(session_token, {})
-                app.current_username = session_info.get("username")
-        else:
-            app.current_username = "admin"
+        if not await ensure_web_auth():
+            return
     
     await load_app()
 

@@ -39,7 +39,15 @@ class SettingsPage(PageBase):
         self.init_unsaved_changes()
         self.page.on_keyboard_event = self.on_keyboard
 
+    def refresh_runtime_configs(self):
+        self.user_config = self.config_manager.load_user_config()
+        self.default_config = self.config_manager.load_default_config()
+        self.cookies_config = self.config_manager.load_cookies_config()
+        self.accounts_config = self.config_manager.load_accounts_config()
+
     async def load(self):
+        self.refresh_runtime_configs()
+
         self.content_area.clean()
         language = self.app.language_manager.language
         self._ = language["settings_page"] | language["video_quality"] | language["base"]
@@ -1410,6 +1418,12 @@ class SettingsPage(PageBase):
             login_required = login_required_switch.value
             self.user_config["login_required"] = login_required
             await self.config_manager.save_user_config(self.user_config)
+            self.app.page.pubsub.send_others_on_topic("security", {"login_required": login_required})
+
+            if getattr(self.app, "ensure_web_auth", None):
+                is_authenticated = await self.app.ensure_web_auth()
+                if login_required and not is_authenticated:
+                    return
             
             if login_required:
                 await self.app.snack_bar.show_snack_bar(self._["login_required_enabled"], bgcolor=ft.Colors.GREEN)
