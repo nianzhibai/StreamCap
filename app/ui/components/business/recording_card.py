@@ -116,6 +116,16 @@ class RecordingCardManager:
             tight=True,
         )
 
+        action_buttons = [
+            record_button,
+            open_folder_button,
+            recording_info_button,
+            preview_button,
+            edit_button,
+            delete_button,
+            monitor_button
+        ]
+
         card_container = ft.Container(
             content=ft.Column(
                 [
@@ -123,18 +133,12 @@ class RecordingCardManager:
                     duration_text_label,
                     speed_text_label,
                     ft.Row(
-                        [
-                            record_button,
-                            open_folder_button,
-                            recording_info_button,
-                            preview_button,
-                            edit_button,
-                            delete_button,
-                            monitor_button
-                        ],
+                        action_buttons,
                         spacing=3,
+                        run_spacing=3,
                         alignment=ft.MainAxisAlignment.START,
-                        scroll=ft.ScrollMode.HIDDEN
+                        scroll=ft.ScrollMode.HIDDEN,
+                        wrap=self.app.is_mobile,
                     ),
                 ],
                 spacing=3,
