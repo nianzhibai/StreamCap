@@ -6,6 +6,10 @@ from typing import Any, Literal, Optional
 from ..utils.logger import logger
 
 
+class GlobalAuthState:
+    active_sessions: dict[str, dict[str, Any]] = {}
+
+
 class AuthManager:
     SESSION_DURATION = timedelta(days=31)
     
@@ -14,7 +18,7 @@ class AuthManager:
         self.config_manager = app.config_manager
         self.is_authenticated = False
         self.session_token = None
-        self.active_sessions = {}
+        self.active_sessions = GlobalAuthState.active_sessions
     
     async def initialize(self):
         web_auth = self.config_manager.load_web_auth_config()
@@ -103,24 +107,20 @@ class AuthManager:
             return True
         return False
     
-    async def change_password(self, username: str, old_password: str, new_password: str) -> bool:
+    async def change_password(self, username: str, new_password: str) -> bool:
         web_auth = self.config_manager.load_web_auth_config()
         users = web_auth.get("users", [])
         
         for i, user in enumerate(users):
             if user["username"] == username:
-                salt = user["salt"]
-                hashed_old_password = self._hash_password(old_password, salt)
-                
-                if hashed_old_password == user["password_hash"]:
-                    new_salt = secrets.token_hex(8)
-                    hashed_new_password = self._hash_password(new_password, new_salt)
-                    
-                    web_auth["users"][i]["password_hash"] = hashed_new_password
-                    web_auth["users"][i]["salt"] = new_salt
-                    
-                    await self.config_manager.save_web_auth_config(web_auth)
-                    return True
+                new_salt = secrets.token_hex(8)
+                hashed_new_password = self._hash_password(new_password, new_salt)
+
+                web_auth["users"][i]["password_hash"] = hashed_new_password
+                web_auth["users"][i]["salt"] = new_salt
+
+                await self.config_manager.save_web_auth_config(web_auth)
+                return True
         
         return False
 

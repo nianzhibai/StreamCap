@@ -33,6 +33,7 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.app = FakeApp()
         self.manager = AuthManager(self.app)
+        self.manager.active_sessions.clear()
         user = self.app.config_manager.web_auth["users"][0]
         user["password_hash"] = self.manager._hash_password("admin", user["salt"])
 
@@ -63,6 +64,20 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(self.manager.validate_session(token))
         self.assertNotIn(token, self.manager.active_sessions)
+
+    async def test_session_remains_valid_across_new_auth_manager_instances(self):
+        success, token = await self.manager.authenticate("admin", "admin")
+
+        self.assertTrue(success)
+        self.assertTrue(self.manager.validate_session(token))
+
+        second_manager = AuthManager(FakeApp())
+
+        self.assertTrue(second_manager.validate_session(token))
+        self.assertEqual(
+            second_manager.active_sessions[token]["username"],
+            "admin",
+        )
 
     async def test_change_username_updates_auth_record_and_invalidates_sessions(self):
         success, token = await self.manager.authenticate("admin", "admin")
@@ -103,6 +118,17 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
             self.app.config_manager.web_auth["users"][0]["username"],
             "admin",
         )
+
+    async def test_change_password_does_not_require_old_password_for_logged_in_user(self):
+        success = await self.manager.change_password("admin", "new-password")
+
+        self.assertTrue(success)
+
+        old_success, _ = await self.manager.authenticate("admin", "admin")
+        new_success, _ = await self.manager.authenticate("admin", "new-password")
+
+        self.assertFalse(old_success)
+        self.assertTrue(new_success)
 
 
 if __name__ == "__main__":

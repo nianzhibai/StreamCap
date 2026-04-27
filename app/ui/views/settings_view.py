@@ -1379,13 +1379,8 @@ class SettingsPage(PageBase):
             await show_login_page()
         
         async def change_password(_):
-            old_password = old_password_field.value
             new_password = new_password_field.value
             confirm_password = confirm_password_field.value
-            
-            if not old_password:
-                await self.app.snack_bar.show_snack_bar(self._["old_password_required"], bgcolor=ft.Colors.RED)
-                return
                 
             if not new_password:
                 await self.app.snack_bar.show_snack_bar(self._["new_password_required"], bgcolor=ft.Colors.RED)
@@ -1397,19 +1392,17 @@ class SettingsPage(PageBase):
                 
             _username = self.app.current_username
             if _username:
-                success = await self.app.auth_manager.change_password(_username, old_password, new_password)
+                success = await self.app.auth_manager.change_password(_username, new_password)
                 
                 if success:
-                    old_password_field.value = ""
                     new_password_field.value = ""
                     confirm_password_field.value = ""
-                    old_password_field.update()
                     new_password_field.update()
                     confirm_password_field.update()
                     
                     await self.app.snack_bar.show_snack_bar(self._["password_changed"], bgcolor=ft.Colors.GREEN)
                 else:
-                    await self.app.snack_bar.show_snack_bar(self._["old_password_incorrect"], bgcolor=ft.Colors.RED)
+                    await self.app.snack_bar.show_snack_bar(self._["not_logged_in"], bgcolor=ft.Colors.RED)
             else:
                 await self.app.snack_bar.show_snack_bar(self._["not_logged_in"], bgcolor=ft.Colors.RED)
         
@@ -1428,12 +1421,6 @@ class SettingsPage(PageBase):
             width=300,
             label=self._["new_username"],
             value="",
-        )
-        
-        old_password_field = ft.TextField(
-            password=True,
-            width=300,
-            label=self._["old_password"],
         )
         
         new_password_field = ft.TextField(
@@ -1486,10 +1473,6 @@ class SettingsPage(PageBase):
                         self.create_setting_row(
                             "",
                             change_username_button,
-                        ),
-                        self.create_setting_row(
-                            self._["old_password"],
-                            old_password_field,
                         ),
                         self.create_setting_row(
                             self._["new_password"],
