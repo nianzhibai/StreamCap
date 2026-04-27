@@ -16,6 +16,14 @@
   English / <a href="./README.md">Chinese</a>
 </div><br>
 
+## Fork Changes / Changelog
+
+This repository is forked from [ihmily/StreamCap](https://github.com/ihmily/StreamCap).
+The list below tracks changes added or adjusted in this fork compared with the upstream project, and will be maintained over time.
+
+- `2026-04-27` Web login session persistence: users stay logged in for 31 days by default; sessions are cleared after a server process restart and require login again.
+- `2026-04-27` Web security settings now support username changes: duplicate usernames are rejected, and a successful rename forces logout and re-login with the new username.
+- `2026-04-27` Fixed the mobile web recordings page so each recording card shows the monitor action instead of hiding it off-screen.
 
 
 StreamCap is a multi-platform live stream recording client based on FFmpeg and StreamGet. It covers over 40 mainstream live streaming platforms both domestically and internationally, and supports features such as batch recording, loop monitoring, timed monitoring, and automatic transcoding.
