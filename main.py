@@ -208,6 +208,7 @@ async def main(page: ft.Page) -> None:
                 page.add(login_page.get_view())
                 return
             else:
+                auth_manager.session_token = session_token
                 session_info = auth_manager.active_sessions.get(session_token, {})
                 app.current_username = session_info.get("username")
         else:

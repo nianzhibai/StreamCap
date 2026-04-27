@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from ..utils.logger import logger
 
@@ -52,6 +52,14 @@ class AuthManager:
             "created_at": created_at,
             "expires_at": created_at + self.SESSION_DURATION,
         }
+
+    def _invalidate_sessions_for_username(self, username: str) -> None:
+        invalid_tokens = [
+            token for token, session in self.active_sessions.items()
+            if session.get("username") == username
+        ]
+        for token in invalid_tokens:
+            self.active_sessions.pop(token, None)
     
     async def authenticate(self, username: str, password: str) -> tuple[bool, Optional[str]]:
         web_auth = self.config_manager.load_web_auth_config()
@@ -114,4 +122,24 @@ class AuthManager:
                     await self.config_manager.save_web_auth_config(web_auth)
                     return True
         
-        return False 
+        return False
+
+    async def change_username(
+            self,
+            current_username: str,
+            new_username: str
+    ) -> Literal["success", "user_not_found", "username_exists"]:
+        web_auth = self.config_manager.load_web_auth_config()
+        users = web_auth.get("users", [])
+
+        if any(user["username"] == new_username for user in users):
+            return "username_exists"
+
+        for user in users:
+            if user["username"] == current_username:
+                user["username"] = new_username
+                await self.config_manager.save_web_auth_config(web_auth)
+                self._invalidate_sessions_for_username(current_username)
+                return "success"
+
+        return "user_not_found"

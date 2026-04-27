@@ -64,6 +64,46 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.manager.validate_session(token))
         self.assertNotIn(token, self.manager.active_sessions)
 
+    async def test_change_username_updates_auth_record_and_invalidates_sessions(self):
+        success, token = await self.manager.authenticate("admin", "admin")
+
+        self.assertTrue(success)
+        self.assertTrue(self.manager.validate_session(token))
+
+        result = await self.manager.change_username("admin", "streamcap")
+
+        self.assertEqual(result, "success")
+        self.assertFalse(self.manager.validate_session(token))
+        self.assertNotIn(token, self.manager.active_sessions)
+        self.assertEqual(
+            self.app.config_manager.web_auth["users"][0]["username"],
+            "streamcap",
+        )
+
+        old_success, _ = await self.manager.authenticate("admin", "admin")
+        new_success, new_token = await self.manager.authenticate("streamcap", "admin")
+        self.assertFalse(old_success)
+        self.assertTrue(new_success)
+        self.assertIsNotNone(new_token)
+
+    async def test_change_username_rejects_duplicate_username(self):
+        self.app.config_manager.web_auth["users"].append(
+            {
+                "username": "existing",
+                "password_hash": self.manager._hash_password("other", "othersalt"),
+                "salt": "othersalt",
+                "is_admin": False,
+            }
+        )
+
+        result = await self.manager.change_username("admin", "existing")
+
+        self.assertEqual(result, "username_exists")
+        self.assertEqual(
+            self.app.config_manager.web_auth["users"][0]["username"],
+            "admin",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

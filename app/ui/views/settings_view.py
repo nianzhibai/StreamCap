@@ -10,6 +10,7 @@ from ...utils.delay import DelayedTaskExecutor
 from ...utils.logger import logger
 from ..base_page import PageBase
 from ..components.dialogs.help_dialog import HelpDialog
+from .login_view import LoginPage
 
 
 class SettingsPage(PageBase):
@@ -1324,6 +1325,58 @@ class SettingsPage(PageBase):
 
     def create_security_settings_tab(self):
         is_mobile = self.app.is_mobile
+
+        async def show_login_page():
+            current_route = self.page.route or "/settings"
+
+            async def on_login_success(token):
+                session_info = self.app.auth_manager.active_sessions.get(token, {})
+                self.app.current_username = session_info.get("username")
+                self.app.auth_manager.session_token = token
+
+                self.page.clean()
+                self.page.add(self.app.complete_page)
+                self.page.go(current_route)
+
+            self.app.current_username = None
+            self.page.clean()
+            login_page = LoginPage(self.page, self.app.auth_manager, on_login_success)
+            self.page.add(login_page.get_view())
+            self.page.update()
+
+        async def change_username(_):
+            current_username = self.app.current_username
+            candidate_username = (new_username_field.value or "").strip()
+
+            if not current_username:
+                await self.app.snack_bar.show_snack_bar(self._["not_logged_in"], bgcolor=ft.Colors.RED)
+                return
+
+            if not candidate_username:
+                await self.app.snack_bar.show_snack_bar(self._["new_username_required"], bgcolor=ft.Colors.RED)
+                return
+
+            if candidate_username == current_username:
+                await self.app.snack_bar.show_snack_bar(self._["username_same_as_current"], bgcolor=ft.Colors.RED)
+                return
+
+            result = await self.app.auth_manager.change_username(current_username, candidate_username)
+            if result == "username_exists":
+                await self.app.snack_bar.show_snack_bar(self._["username_exists"], bgcolor=ft.Colors.RED)
+                return
+
+            if result != "success":
+                await self.app.snack_bar.show_snack_bar(self._["not_logged_in"], bgcolor=ft.Colors.RED)
+                return
+
+            session_token = await self.page.client_storage.get_async("session_token")
+            if session_token:
+                self.app.auth_manager.logout(session_token)
+                await self.page.client_storage.remove_async("session_token")
+
+            self.app.auth_manager.session_token = None
+            await self.app.snack_bar.show_snack_bar(self._["username_changed_relogin"], bgcolor=ft.Colors.GREEN)
+            await show_login_page()
         
         async def change_password(_):
             old_password = old_password_field.value
@@ -1371,6 +1424,11 @@ class SettingsPage(PageBase):
                 await self.app.snack_bar.show_snack_bar(self._["login_required_disabled"], bgcolor=ft.Colors.GREEN)
         
         username = self.app.current_username or "admin"
+        new_username_field = ft.TextField(
+            width=300,
+            label=self._["new_username"],
+            value="",
+        )
         
         old_password_field = ft.TextField(
             password=True,
@@ -1395,6 +1453,12 @@ class SettingsPage(PageBase):
             on_click=change_password,
             icon=ft.icons.LOCK_RESET,
         )
+
+        change_username_button = ft.ElevatedButton(
+            text=self._["change_username"],
+            on_click=change_username,
+            icon=ft.icons.PERSON,
+        )
         
         login_required_switch = ft.Switch(
             value=self.get_config_value("login_required", False),
@@ -1414,6 +1478,14 @@ class SettingsPage(PageBase):
                         self.create_setting_row(
                             self._["current_username"],
                             ft.Text(username),
+                        ),
+                        self.create_setting_row(
+                            self._["new_username"],
+                            new_username_field,
+                        ),
+                        self.create_setting_row(
+                            "",
+                            change_username_button,
                         ),
                         self.create_setting_row(
                             self._["old_password"],

@@ -162,6 +162,7 @@ class LoginPage:
 
         if success:
             logger.info(f"Login successful: {username}")
+            self.auth_manager.session_token = token
             await self.page.client_storage.set_async("session_token", token)
             await self.on_login_success(token)
             self.page.title = "StreamCap"
