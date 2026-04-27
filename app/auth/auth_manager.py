@@ -120,6 +120,7 @@ class AuthManager:
                 web_auth["users"][i]["salt"] = new_salt
 
                 await self.config_manager.save_web_auth_config(web_auth)
+                self._invalidate_sessions_for_username(username)
                 return True
         
         return False

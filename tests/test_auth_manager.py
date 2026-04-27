@@ -120,9 +120,16 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_change_password_does_not_require_old_password_for_logged_in_user(self):
+        login_success, token = await self.manager.authenticate("admin", "admin")
+
+        self.assertTrue(login_success)
+        self.assertTrue(self.manager.validate_session(token))
+
         success = await self.manager.change_password("admin", "new-password")
 
         self.assertTrue(success)
+        self.assertFalse(self.manager.validate_session(token))
+        self.assertNotIn(token, self.manager.active_sessions)
 
         old_success, _ = await self.manager.authenticate("admin", "admin")
         new_success, _ = await self.manager.authenticate("admin", "new-password")

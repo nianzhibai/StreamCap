@@ -1403,12 +1403,19 @@ class SettingsPage(PageBase):
                 success = await self.app.auth_manager.change_password(_username, new_password)
                 
                 if success:
+                    session_token = await self.page.client_storage.get_async("session_token")
+                    if session_token:
+                        self.app.auth_manager.logout(session_token)
+                        await self.page.client_storage.remove_async("session_token")
+
+                    self.app.auth_manager.session_token = None
                     new_password_field.value = ""
                     confirm_password_field.value = ""
                     new_password_field.update()
                     confirm_password_field.update()
                     
                     await self.app.snack_bar.show_snack_bar(self._["password_changed"], bgcolor=ft.Colors.GREEN)
+                    await show_login_page()
                 else:
                     await self.app.snack_bar.show_snack_bar(self._["not_logged_in"], bgcolor=ft.Colors.RED)
             else:
