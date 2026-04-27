@@ -15,6 +15,11 @@ from ..filters import RecordingFilters
 
 
 class RecordingsPage(PageBase):
+    MOBILE_GRID_COLUMN_WIDTH = 250
+    MOBILE_GRID_CHILD_ASPECT_RATIO = 1.7
+    DESKTOP_GRID_COLUMN_WIDTH = 350
+    DESKTOP_GRID_CHILD_ASPECT_RATIO = 2.3
+
     def __init__(self, app):
         super().__init__(app)
         self.page_name = "recordings"
@@ -48,7 +53,7 @@ class RecordingsPage(PageBase):
                 runs_count=3,
                 spacing=10,
                 run_spacing=10,
-                child_aspect_ratio=2.3,
+                child_aspect_ratio=self.get_grid_child_aspect_ratio(),
                 controls=[]
             )
         else:
@@ -93,12 +98,22 @@ class RecordingsPage(PageBase):
         self.app.page.pubsub.subscribe_topic('add', self.subscribe_add_cards)
         self.app.page.pubsub.subscribe_topic('delete_all', self.subscribe_del_all_cards)
 
+    def get_grid_column_width(self):
+        return self.MOBILE_GRID_COLUMN_WIDTH if self.app.is_mobile else self.DESKTOP_GRID_COLUMN_WIDTH
+
+    def get_grid_child_aspect_ratio(self):
+        return (
+            self.MOBILE_GRID_CHILD_ASPECT_RATIO
+            if self.app.is_mobile
+            else self.DESKTOP_GRID_CHILD_ASPECT_RATIO
+        )
+
     async def toggle_view_mode(self, _):
         self.is_grid_view = not self.is_grid_view
         current_content = self.recording_card_area.content
         current_controls = current_content.controls if hasattr(current_content, 'controls') else []
 
-        column_width = 350
+        column_width = self.get_grid_column_width()
         runs_count = max(1, int(self.page.width / column_width))
 
         if self.is_grid_view:
@@ -107,7 +122,7 @@ class RecordingsPage(PageBase):
                 runs_count=runs_count,
                 spacing=10,
                 run_spacing=10,
-                child_aspect_ratio=2.3,
+                child_aspect_ratio=self.get_grid_child_aspect_ratio(),
                 controls=current_controls
             )
         else:
@@ -705,13 +720,8 @@ class RecordingsPage(PageBase):
         if not self.is_grid_view:
             return
 
-        if self.app.is_mobile:
-            column_width = 250
-            child_aspect_ratio = 2.5
-        else:
-            column_width = 350
-            child_aspect_ratio = 2.3
-
+        column_width = self.get_grid_column_width()
+        child_aspect_ratio = self.get_grid_child_aspect_ratio()
         runs_count = max(1, int(self.page.width / column_width))
 
         if isinstance(self.recording_card_area.content, ft.GridView):
