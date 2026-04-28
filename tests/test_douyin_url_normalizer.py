@@ -1,0 +1,72 @@
+import unittest
+from unittest.mock import patch
+
+import httpx
+
+from app.utils.douyin_url_normalizer import (
+    DouyinNormalizationError,
+    normalize_douyin_input,
+)
+
+
+class NormalizeDouyinInputTests(unittest.IsolatedAsyncioTestCase):
+    async def test_returns_live_room_url_unchanged(self):
+        result = await normalize_douyin_input("https://live.douyin.com/845632139263")
+
+        self.assertEqual(result, "https://live.douyin.com/845632139263")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_resolves_share_text_with_short_link_to_live_room_url(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.return_value = httpx.Response(
+            200,
+            request=httpx.Request("GET", "https://v.douyin.com/fBjnc1ZLEEY/"),
+            text='{"app":{"initialState":{"roomStore":{"roomInfo":{"room":{"webRid":"845632139263"}}}}}',
+        )
+
+        result = await normalize_douyin_input(
+            (
+                "8- #在抖音，记录美好生活#【浪羽pubg】正在直播，"
+                "来和我一起支持Ta吧。复制下方链接，打开【抖音】，直接观看直播！ "
+                "https://v.douyin.com/fBjnc1ZLEEY/ 2@2.com :8pm"
+            )
+        )
+
+        self.assertEqual(result, "https://live.douyin.com/845632139263")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_resolves_raw_short_link_to_live_room_url(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.return_value = httpx.Response(
+            200,
+            request=httpx.Request("GET", "https://v.douyin.com/example/"),
+            text='{"webRid":"845632139263"}',
+        )
+
+        result = await normalize_douyin_input("https://v.douyin.com/example/")
+
+        self.assertEqual(result, "https://live.douyin.com/845632139263")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_raises_when_response_does_not_contain_web_rid(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.return_value = httpx.Response(
+            200,
+            request=httpx.Request("GET", "https://v.douyin.com/example/"),
+            text="<html></html>",
+        )
+
+        with self.assertRaises(DouyinNormalizationError):
+            await normalize_douyin_input("https://v.douyin.com/example/")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_raises_on_http_or_network_errors(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.side_effect = httpx.HTTPError("network down")
+
+        with self.assertRaises(DouyinNormalizationError):
+            await normalize_douyin_input("https://v.douyin.com/example/")
+
+
+if __name__ == "__main__":
+    unittest.main()
