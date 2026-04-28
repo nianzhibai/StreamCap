@@ -4,8 +4,15 @@ from ....core.platforms.platform_handlers import get_platform_info
 from ....models.media.audio_format_model import AudioFormat
 from ....models.media.video_format_model import VideoFormat
 from ....models.media.video_quality_model import VideoQuality
+from ....utils.douyin_url_normalizer import DouyinNormalizationError, extract_douyin_candidate_url, normalize_douyin_input
 from ....utils import utils
 from ....utils.logger import logger
+
+try:
+    from ....utils.douyin_url_normalizer import looks_like_douyin_input
+except ImportError:
+    def looks_like_douyin_input(raw_text: str) -> bool:
+        return extract_douyin_candidate_url(raw_text or "") is not None
 
 
 class RecordingDialog:
@@ -22,6 +29,76 @@ class RecordingDialog:
         language = self.app.language_manager.language
         for key in ("recording_dialog", "recordings_page", "base", "video_quality"):
             self._.update(language.get(key, {}))
+
+    def _get_resolution_proxy(self):
+        user_config = self.app.settings.user_config
+        if not user_config.get("enable_proxy"):
+            return None
+        return utils.handle_proxy_addr(user_config.get("proxy_address"))
+
+    async def _normalize_single_input_url(self, raw_url: str) -> str:
+        live_url = raw_url.strip()
+        if not looks_like_douyin_input(live_url):
+            return live_url
+        return await normalize_douyin_input(live_url, proxy=self._get_resolution_proxy())
+
+    async def _build_single_recording_payload(
+        self,
+        *,
+        url_value,
+        streamer_name_value,
+        quality_value,
+        record_format_value,
+        recording_dir_value,
+        segment_visible,
+        segment_time_value,
+        scheduled_recording_enabled,
+        scheduled_start_time_values,
+        monitor_hours_values,
+        message_push_enabled,
+        only_notify_no_record,
+        flv_use_direct_download,
+        rec_id,
+        initial_values,
+    ):
+        quality_info = self._[quality_value]
+
+        if not streamer_name_value:
+            anchor_name = self._["live_room"]
+            title = f"{anchor_name} - {quality_info}"
+        else:
+            anchor_name = streamer_name_value.strip()
+            title = f"{anchor_name} - {quality_info}"
+
+        display_title = title
+        live_url = await self._normalize_single_input_url(url_value)
+        platform, platform_key = get_platform_info(live_url)
+        if not platform:
+            raise ValueError(live_url)
+
+        return [
+            {
+                "rec_id": rec_id,
+                "url": live_url,
+                "streamer_name": anchor_name,
+                "record_format": record_format_value,
+                "quality": quality_value,
+                "quality_info": quality_info,
+                "title": title,
+                "speed": "X KB/s",
+                "segment_record": segment_visible,
+                "segment_time": segment_time_value,
+                "monitor_status": initial_values.get("monitor_status", True),
+                "display_title": display_title,
+                "scheduled_recording": scheduled_recording_enabled,
+                "scheduled_start_time": ",".join(str(value) for value in scheduled_start_time_values),
+                "monitor_hours": ",".join(str(value) for value in monitor_hours_values),
+                "recording_dir": recording_dir_value,
+                "enabled_message_push": message_push_enabled,
+                "only_notify_no_record": only_notify_no_record,
+                "flv_use_direct_download": flv_use_direct_download,
+            }
+        ]
 
     async def show_dialog(self):
         """Show a dialog for adding or editing a recording."""
@@ -356,47 +433,34 @@ class RecordingDialog:
             existing_recordings = get_existing_recordings()
 
             if tabs.selected_index == 0:
-                quality_info = self._[quality_dropdown.value]
-
-                if not streamer_name_field.value:
-                    anchor_name = self._["live_room"]
-                    title = f"{anchor_name} - {quality_info}"
-                else:
-                    anchor_name = streamer_name_field.value.strip()
-                    title = f"{anchor_name} - {quality_info}"
-
-                display_title = title
                 rec_id = self.recording.rec_id if self.recording else None
-                live_url = url_field.value.strip()
-                platform, platform_key = get_platform_info(live_url)
-                if not platform:
-                    await not_supported(url_field.value)
+                try:
+                    recordings_info = await self._build_single_recording_payload(
+                        url_value=url_field.value,
+                        streamer_name_value=streamer_name_field.value,
+                        quality_value=quality_dropdown.value,
+                        record_format_value=record_format_field.value,
+                        recording_dir_value=recording_dir_field.value,
+                        segment_visible=segment_input.visible,
+                        segment_time_value=segment_input.value,
+                        scheduled_recording_enabled=scheduled_setting_dropdown.value == "true",
+                        scheduled_start_time_values=[i.value for i in time_inputs],
+                        monitor_hours_values=[i.value for i in hour_inputs],
+                        message_push_enabled=message_push_dropdown.value == "true",
+                        only_notify_no_record=no_record_dropdown.value == "true",
+                        flv_use_direct_download=flv_use_direct_download_dropdown.value == "true",
+                        rec_id=rec_id,
+                        initial_values=initial_values,
+                    )
+                except DouyinNormalizationError:
+                    await self.app.snack_bar.show_snack_bar(self._["douyin_parse_failed_tip"], duration=3000)
+                    return
+                except ValueError as exc:
+                    await not_supported(str(exc))
                     await close_dialog(e)
                     return
 
-                recordings_info = [
-                    {
-                        "rec_id": rec_id,
-                        "url": live_url,
-                        "streamer_name": anchor_name,
-                        "record_format": record_format_field.value,
-                        "quality": quality_dropdown.value,
-                        "quality_info": quality_info,
-                        "title": title,
-                        "speed": "X KB/s",
-                        "segment_record": segment_input.visible,
-                        "segment_time": segment_input.value,
-                        "monitor_status": initial_values.get("monitor_status", True),
-                        "display_title": display_title,
-                        "scheduled_recording": scheduled_setting_dropdown.value == 'true',
-                        "scheduled_start_time": ','.join([str(i.value) for i in time_inputs]),
-                        "monitor_hours": ','.join([str(i.value) for i in hour_inputs]),
-                        "recording_dir": recording_dir_field.value,
-                        "enabled_message_push": message_push_dropdown.value == "true",
-                        "only_notify_no_record": no_record_dropdown.value == "true",
-                        "flv_use_direct_download": flv_use_direct_download_dropdown.value == "true",
-                    }
-                ]
+                live_url = recordings_info[0]["url"]
 
                 if live_url in existing_recordings and not rec_id:
                     async def confirm_duplicate():

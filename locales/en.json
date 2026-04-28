@@ -95,6 +95,7 @@
     "single_input": "Single Input",
     "batch_input": "Batch Input",
     "live_room": "Live Room",
+    "douyin_parse_failed_tip": "Failed to parse Douyin link ⚠️",
     "platform_not_supported_tip": "This platform does not support recording ⚠️",
     "pick_time": "Pick time",
     "pick_time_tip": "Configure scheduled time",

@@ -95,6 +95,7 @@
     "single_input": "单个录入",
     "batch_input": "批量录入",
     "live_room": "直播间",
+    "douyin_parse_failed_tip": "抖音链接解析失败 ⚠️",
     "platform_not_supported_tip": "暂不支持该平台录制 ⚠️",
     "pick_time": "选择时间",
     "pick_time_tip": "配置定时时间",
