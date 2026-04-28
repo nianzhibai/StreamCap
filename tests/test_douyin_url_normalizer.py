@@ -67,6 +67,19 @@ class NormalizeDouyinInputTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, "https://live.douyin.com/845632139263")
 
     @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_resolves_short_link_from_final_redirected_response_url_without_web_rid(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.return_value = httpx.Response(
+            200,
+            request=httpx.Request("GET", "https://live.douyin.com/845632139263"),
+            text="<html></html>",
+        )
+
+        result = await normalize_douyin_input("https://v.douyin.com/example/")
+
+        self.assertEqual(result, "https://live.douyin.com/845632139263")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
     async def test_raises_when_response_does_not_contain_web_rid(self, client_cls):
         client = client_cls.return_value.__aenter__.return_value
         client.get.return_value = httpx.Response(

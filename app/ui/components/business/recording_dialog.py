@@ -42,7 +42,7 @@ class RecordingDialog:
             return live_url
         return await normalize_douyin_input(live_url, proxy=self._get_resolution_proxy())
 
-    async def _get_batch_dedup_existing_urls(self, existing_recordings):
+    async def _get_normalized_existing_urls(self, existing_recordings):
         normalized_existing_urls = set()
         for existing_recording in existing_recordings:
             existing_url = existing_recording.strip()
@@ -117,7 +117,7 @@ class RecordingDialog:
         batch_url_list = []
         quality_dict = {"0": "OD", "1": "UHD", "2": "HD", "3": "SD", "4": "LD"}
         unsupported_urls = []
-        normalized_existing_urls = await self._get_batch_dedup_existing_urls(existing_recordings)
+        normalized_existing_urls = await self._get_normalized_existing_urls(existing_recordings)
 
         for line in lines:
             if "http" not in line:
@@ -538,8 +538,9 @@ class RecordingDialog:
                     return
 
                 live_url = recordings_info[0]["url"]
+                normalized_existing_urls = await self._get_normalized_existing_urls(existing_recordings)
 
-                if live_url in existing_recordings and not rec_id:
+                if live_url in normalized_existing_urls and not rec_id:
                     async def confirm_duplicate():
                         async def close_duplicate_dialog(_):
                             self.url_duplicate_confirm_dialog.open = False

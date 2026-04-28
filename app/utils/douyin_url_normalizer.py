@@ -48,6 +48,10 @@ async def normalize_douyin_input(raw_text: str, proxy: str | None = None, timeou
     except httpx.HTTPError as exc:
         raise DouyinNormalizationError("Failed to resolve Douyin share link") from exc
 
+    redirected_live_match = LIVE_ROOM_RE.search(str(response.url))
+    if redirected_live_match:
+        return f"https://live.douyin.com/{redirected_live_match.group(1)}"
+
     web_rid_match = WEB_RID_RE.search(response.text)
     if not web_rid_match:
         raise DouyinNormalizationError("Failed to extract Douyin live room id")

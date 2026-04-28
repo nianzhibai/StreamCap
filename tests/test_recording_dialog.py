@@ -332,6 +332,45 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
             [("Failed to parse Douyin link", {"duration": 3000})],
         )
 
+    async def test_single_input_duplicate_detection_normalizes_existing_saved_douyin_url(self):
+        self.app.record_manager.recordings = [
+            FakeRecording(
+                "8- #在抖音，记录美好生活#【主播甲】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+                "https://v.douyin.com/existing123/"
+            )
+        ]
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        url_field = single_input_controls[1]
+        streamer_name_field = single_input_controls[2]
+        confirm_button = alert_dialog.actions[1]
+
+        url_field.value = "https://v.douyin.com/new456/"
+        streamer_name_field.value = "主播甲"
+
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(
+                side_effect=[
+                    "https://live.douyin.com/845632139263",
+                    "https://live.douyin.com/845632139263",
+                ]
+            ),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            await confirm_button.on_click(None)
+
+        self.on_confirm_callback.assert_not_awaited()
+        self.assertEqual(normalize_mock.await_count, 2)
+        self.assertEqual(platform_mock.call_count, 1)
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
+        self.assertTrue(alert_dialog.open)
+        self.assertIs(self.app.page.overlay[-1], self.dialog.url_duplicate_confirm_dialog)
+
 
 class RecordingDialogBatchInputTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
