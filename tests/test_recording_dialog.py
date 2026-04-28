@@ -328,5 +328,106 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class RecordingDialogBatchInputTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.app = FakeApp()
+        self.on_confirm_callback = AsyncMock()
+        self.dialog = RecordingDialog(self.app, on_confirm_callback=self.on_confirm_callback)
+
+    async def test_batch_input_normalizes_each_douyin_line_before_dedup(self):
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        tabs = alert_dialog.content
+        batch_input = tabs.tabs[1].content.content
+        confirm_button = alert_dialog.actions[1]
+
+        tabs.selected_index = 1
+        batch_input.value = "\n".join(
+            [
+                "0, https://v.douyin.com/first123/, 主播甲",
+                (
+                    "1，9- #在抖音，记录美好生活#【主播乙】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+                    "https://v.douyin.com/second456/，主播乙"
+                ),
+            ]
+        )
+
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(
+                side_effect=[
+                    "https://live.douyin.com/845632139263",
+                    "https://live.douyin.com/845632139263",
+                ]
+            ),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            await confirm_button.on_click(None)
+
+        self.on_confirm_callback.assert_awaited_once()
+        recordings_info = self.on_confirm_callback.await_args.args[0]
+        self.assertEqual(len(recordings_info), 1)
+        self.assertEqual(recordings_info[0]["url"], "https://live.douyin.com/845632139263")
+        self.assertEqual(recordings_info[0]["streamer_name"], "主播甲")
+        self.assertEqual(
+            normalize_mock.await_args_list[0].args,
+            ("https://v.douyin.com/first123/",),
+        )
+        self.assertEqual(
+            normalize_mock.await_args_list[1].args,
+            (
+                "9- #在抖音，记录美好生活#【主播乙】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+                "https://v.douyin.com/second456/",
+            ),
+        )
+        for await_call in normalize_mock.await_args_list:
+            self.assertEqual(await_call.kwargs, {"proxy": "http://127.0.0.1:7890"})
+        self.assertEqual(platform_mock.call_count, 2)
+        platform_mock.assert_called_with("https://live.douyin.com/845632139263")
+        self.assertFalse(alert_dialog.open)
+
+    async def test_batch_input_aborts_entire_submission_when_douyin_normalization_fails(self):
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        tabs = alert_dialog.content
+        batch_input = tabs.tabs[1].content.content
+        confirm_button = alert_dialog.actions[1]
+
+        tabs.selected_index = 1
+        batch_input.value = "\n".join(
+            [
+                "0, https://v.douyin.com/first123/, 主播甲",
+                "https://v.douyin.com/broken456/, 主播乙",
+            ]
+        )
+
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(
+                side_effect=[
+                    "https://live.douyin.com/845632139263",
+                    DouyinNormalizationError("bad input"),
+                ]
+            ),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            await confirm_button.on_click(None)
+
+        self.on_confirm_callback.assert_not_awaited()
+        self.assertEqual(normalize_mock.await_count, 2)
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
+        self.assertTrue(alert_dialog.open)
+        self.assertEqual(
+            self.app.snack_bar.messages,
+            [("Failed to parse Douyin link", {"duration": 3000})],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

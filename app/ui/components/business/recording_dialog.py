@@ -1,3 +1,5 @@
+import re
+
 import flet as ft
 
 from ....core.platforms.platform_handlers import get_platform_info
@@ -35,6 +37,12 @@ class RecordingDialog:
         return utils.handle_proxy_addr(user_config.get("proxy_address"))
 
     async def _normalize_single_input_url(self, raw_url: str) -> str:
+        live_url = raw_url.strip()
+        if not looks_like_douyin_input(live_url):
+            return live_url
+        return await normalize_douyin_input(live_url, proxy=self._get_resolution_proxy())
+
+    async def _normalize_batch_url(self, raw_url: str) -> str:
         live_url = raw_url.strip()
         if not looks_like_douyin_input(live_url):
             return live_url
@@ -95,8 +103,68 @@ class RecordingDialog:
                 "enabled_message_push": message_push_enabled,
                 "only_notify_no_record": only_notify_no_record,
                 "flv_use_direct_download": flv_use_direct_download,
-            }
+                }
         ]
+
+    async def _build_batch_recording_payloads(self, *, batch_input_value, existing_recordings):
+        lines = batch_input_value.splitlines()
+        recordings_info = []
+        batch_url_list = []
+        quality_dict = {"0": "OD", "1": "UHD", "2": "HD", "3": "SD", "4": "LD"}
+        unsupported_urls = []
+
+        for line in lines:
+            if "http" not in line:
+                continue
+
+            streamer_name = ""
+            quality = "OD"
+            raw_line = line.strip()
+            remaining = raw_line
+
+            quality_split = re.split(r"[，,]", raw_line, maxsplit=1)
+            if len(quality_split) == 2 and quality_split[0].strip() in quality_dict:
+                quality = quality_split[0].strip()
+                remaining = quality_split[1].strip()
+
+            streamer_split = re.split(r"[，,](?!.*[，,])", remaining, maxsplit=1)
+            if len(streamer_split) == 2 and "http" not in streamer_split[1]:
+                url = streamer_split[0].strip()
+                streamer_name = streamer_split[1].strip()
+            else:
+                url = remaining.strip()
+
+            live_url = await self._normalize_batch_url(url)
+            platform, platform_key = get_platform_info(live_url)
+            if not platform:
+                unsupported_urls.append(live_url)
+                continue
+
+            normalized_url = live_url.strip()
+            existing_urls = set(batch_url_list) | set(existing_recordings)
+            if normalized_url in existing_urls:
+                logger.info(f"Skip {normalized_url}, the live room URL already exists.")
+                continue
+
+            quality = quality_dict.get(quality, "OD")
+            title = f"{streamer_name} - {self._[quality]}"
+            display_title = title
+            if not streamer_name:
+                streamer_name = self._["live_room"]
+                display_title = streamer_name + normalized_url.split("?")[0] + "... - " + self._[quality]
+
+            recording_info = {
+                "url": normalized_url,
+                "streamer_name": streamer_name,
+                "quality": quality,
+                "quality_info": self._[VideoQuality.OD],
+                "title": title,
+                "display_title": display_title,
+            }
+            batch_url_list.append(normalized_url)
+            recordings_info.append(recording_info)
+
+        return recordings_info, unsupported_urls
 
     async def show_dialog(self):
         """Show a dialog for adding or editing a recording."""
@@ -498,53 +566,17 @@ class RecordingDialog:
                     await self.on_confirm_callback(recordings_info)
 
             elif tabs.selected_index == 1:  # Batch entry
-                lines = batch_input.value.splitlines()
-                recordings_info = []
-                batch_url_list = []
-                streamer_name = ""
-                quality = "OD"
-                quality_dict = {"0": "OD", "1": "UHD", "2": "HD", "3": "SD", "4": "LD"}
-                for line in lines:
-                    if "http" not in line:
-                        continue
-                    res = [i for i in line.strip().replace("，", ",").split(",") if i]
-                    if len(res) == 3:
-                        quality, url, streamer_name = res
-                    elif len(res) == 2:
-                        if res[1].startswith("http"):
-                            quality, url = res
-                        else:
-                            url, streamer_name = res
-                    else:
-                        url = res[0]
+                try:
+                    recordings_info, unsupported_urls = await self._build_batch_recording_payloads(
+                        batch_input_value=batch_input.value,
+                        existing_recordings=existing_recordings,
+                    )
+                except DouyinNormalizationError:
+                    await self.app.snack_bar.show_snack_bar(self._["douyin_parse_failed_tip"], duration=3000)
+                    return
 
-                    platform, platform_key = get_platform_info(url)
-                    if not platform:
-                        await not_supported(url)
-                        continue
-
-                    existing_urls = set(batch_url_list) | set(existing_recordings)
-                    if url.strip() in existing_urls:
-                        logger.info(f"Skip {url.strip()}, the live room URL already exists.")
-                        continue
-
-                    quality = quality_dict.get(quality, "OD")
-                    title = f"{streamer_name} - {self._[quality]}"
-                    display_title = title
-                    if not streamer_name:
-                        streamer_name = self._["live_room"]
-                        display_title = streamer_name + url.split("?")[0] + "... - " + self._[quality]
-
-                    recording_info = {
-                        "url": url.strip(),
-                        "streamer_name": streamer_name,
-                        "quality": quality,
-                        "quality_info": self._[VideoQuality.OD],
-                        "title": title,
-                        "display_title": display_title,
-                    }
-                    batch_url_list.append(url.strip())
-                    recordings_info.append(recording_info)
+                for unsupported_url in unsupported_urls:
+                    await not_supported(unsupported_url)
 
                 await self.on_confirm_callback(recordings_info)
 
