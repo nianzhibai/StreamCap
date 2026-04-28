@@ -15,6 +15,11 @@ class NormalizeDouyinInputTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, "https://live.douyin.com/845632139263")
 
+    async def test_returns_live_room_url_with_douyin_id_unchanged(self):
+        result = await normalize_douyin_input("https://live.douyin.com/yall1102")
+
+        self.assertEqual(result, "https://live.douyin.com/yall1102")
+
     @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
     async def test_resolves_share_text_with_short_link_to_live_room_url(self, client_cls):
         client = client_cls.return_value.__aenter__.return_value
@@ -63,6 +68,18 @@ class NormalizeDouyinInputTests(unittest.IsolatedAsyncioTestCase):
     async def test_raises_on_http_or_network_errors(self, client_cls):
         client = client_cls.return_value.__aenter__.return_value
         client.get.side_effect = httpx.HTTPError("network down")
+
+        with self.assertRaises(DouyinNormalizationError):
+            await normalize_douyin_input("https://v.douyin.com/example/")
+
+    @patch("app.utils.douyin_url_normalizer.httpx.AsyncClient")
+    async def test_raises_on_non_2xx_http_response(self, client_cls):
+        client = client_cls.return_value.__aenter__.return_value
+        client.get.return_value = httpx.Response(
+            404,
+            request=httpx.Request("GET", "https://v.douyin.com/example/"),
+            text="not found",
+        )
 
         with self.assertRaises(DouyinNormalizationError):
             await normalize_douyin_input("https://v.douyin.com/example/")
