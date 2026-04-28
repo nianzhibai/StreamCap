@@ -36,17 +36,22 @@ class RecordingDialog:
             return None
         return utils.handle_proxy_addr(user_config.get("proxy_address"))
 
-    async def _normalize_single_input_url(self, raw_url: str) -> str:
+    async def _normalize_url_if_douyin(self, raw_url: str) -> str:
         live_url = raw_url.strip()
         if not looks_like_douyin_input(live_url):
             return live_url
         return await normalize_douyin_input(live_url, proxy=self._get_resolution_proxy())
 
-    async def _normalize_batch_url(self, raw_url: str) -> str:
-        live_url = raw_url.strip()
-        if not looks_like_douyin_input(live_url):
-            return live_url
-        return await normalize_douyin_input(live_url, proxy=self._get_resolution_proxy())
+    async def _get_batch_dedup_existing_urls(self, existing_recordings):
+        normalized_existing_urls = set()
+        for existing_recording in existing_recordings:
+            existing_url = existing_recording.strip()
+            try:
+                normalized_existing_urls.add(await self._normalize_url_if_douyin(existing_url))
+            except DouyinNormalizationError:
+                logger.warning(f"Failed to normalize existing Douyin URL for dedup: {existing_url}")
+                normalized_existing_urls.add(existing_url)
+        return normalized_existing_urls
 
     async def _build_single_recording_payload(
         self,
@@ -77,7 +82,7 @@ class RecordingDialog:
             title = f"{anchor_name} - {quality_info}"
 
         display_title = title
-        live_url = await self._normalize_single_input_url(url_value)
+        live_url = await self._normalize_url_if_douyin(url_value)
         platform, platform_key = get_platform_info(live_url)
         if not platform:
             raise ValueError(live_url)
@@ -112,6 +117,7 @@ class RecordingDialog:
         batch_url_list = []
         quality_dict = {"0": "OD", "1": "UHD", "2": "HD", "3": "SD", "4": "LD"}
         unsupported_urls = []
+        normalized_existing_urls = await self._get_batch_dedup_existing_urls(existing_recordings)
 
         for line in lines:
             if "http" not in line:
@@ -134,14 +140,14 @@ class RecordingDialog:
             else:
                 url = remaining.strip()
 
-            live_url = await self._normalize_batch_url(url)
+            live_url = await self._normalize_url_if_douyin(url)
             platform, platform_key = get_platform_info(live_url)
             if not platform:
                 unsupported_urls.append(live_url)
                 continue
 
             normalized_url = live_url.strip()
-            existing_urls = set(batch_url_list) | set(existing_recordings)
+            existing_urls = set(batch_url_list) | normalized_existing_urls
             if normalized_url in existing_urls:
                 logger.info(f"Skip {normalized_url}, the live room URL already exists.")
                 continue

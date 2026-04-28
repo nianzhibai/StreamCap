@@ -97,6 +97,11 @@ class FakeRecordManager:
         self.recordings = []
 
 
+class FakeRecording:
+    def __init__(self, url):
+        self.url = url
+
+
 class FakeSettings:
     def __init__(self):
         self.user_config = {
@@ -427,6 +432,43 @@ class RecordingDialogBatchInputTests(unittest.IsolatedAsyncioTestCase):
             self.app.snack_bar.messages,
             [("Failed to parse Douyin link", {"duration": 3000})],
         )
+
+    async def test_batch_input_dedups_against_existing_saved_douyin_share_link_after_normalization(self):
+        self.app.record_manager.recordings = [
+            FakeRecording(
+                "8- #在抖音，记录美好生活#【主播甲】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+                "https://v.douyin.com/existing123/"
+            )
+        ]
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        tabs = alert_dialog.content
+        batch_input = tabs.tabs[1].content.content
+        confirm_button = alert_dialog.actions[1]
+
+        tabs.selected_index = 1
+        batch_input.value = "0, https://v.douyin.com/new456/, 主播甲"
+
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(
+                side_effect=[
+                    "https://live.douyin.com/845632139263",
+                    "https://live.douyin.com/845632139263",
+                ]
+            ),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            await confirm_button.on_click(None)
+
+        self.on_confirm_callback.assert_awaited_once_with([])
+        self.assertEqual(normalize_mock.await_count, 2)
+        self.assertEqual(platform_mock.call_count, 1)
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
+        self.assertFalse(alert_dialog.open)
 
 
 if __name__ == "__main__":
