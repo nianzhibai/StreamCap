@@ -3,14 +3,14 @@
 </div>
 <p align="center">
   <img alt="Python version" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
-  <a href="https://github.com/ihmily/StreamCap">
+  <a href="https://github.com/nianzhibai/StreamCap">
       <img alt="Supported Platforms" src="https://img.shields.io/badge/Platforms-Win%20%7C%20Mac%20%7C%20Linux-6B5BFF.svg"></a>
     <a href="https://hub.docker.com/r/ihmily/streamcap/tags">
       <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/ihmily/streamcap?label=Docker%20Pulls&color=2496ED&logo=docker"></a>
-  <a href="https://github.com/ihmily/StreamCap/releases/latest">
-      <img alt="Latest Release" src="https://img.shields.io/github/v/release/ihmily/StreamCap"></a>
-  <a href="https://github.com/ihmily/StreamCap/releases/latest">
-      <img alt="Downloads" src="https://img.shields.io/github/downloads/ihmily/StreamCap/total"></a>
+  <a href="https://github.com/nianzhibai/StreamCap/releases/latest">
+      <img alt="Latest Release" src="https://img.shields.io/github/v/release/nianzhibai/StreamCap"></a>
+  <a href="https://github.com/nianzhibai/StreamCap/releases/latest">
+      <img alt="Downloads" src="https://img.shields.io/github/downloads/nianzhibai/StreamCap/total"></a>
 </p>
 <div align="center">
   English / <a href="./README.md">Chinese</a>
@@ -24,6 +24,7 @@ The list below tracks changes added or adjusted in this fork compared with the u
 - `2026-04-27` Web login session persistence: users stay logged in for 31 days by default; sessions are cleared after a server process restart and require login again.
 - `2026-04-27` Web security settings now support username changes: duplicate usernames are rejected, and a successful rename forces logout and re-login with the new username.
 - `2026-04-27` Fixed the mobile web recordings page so each recording card shows the monitor action instead of hiding it off-screen.
+- `2026-04-28` The recording input now accepts Douyin share text and `v.douyin.com` short links directly; the app resolves them to the final live-room URL before saving and blocks saving if resolution fails.
 
 
 StreamCap is a multi-platform live stream recording client based on FFmpeg and StreamGet. It covers over 40 mainstream live streaming platforms both domestically and internationally, and supports features such as batch recording, loop monitoring, timed monitoring, and automatic transcoding.
@@ -45,7 +46,7 @@ StreamCap is a multi-platform live stream recording client based on FFmpeg and S
 
 ### 1. **Run the Pre-Built Program**
 
-Visit the [StreamCap Releases](https://github.com/ihmily/StreamCap/releases/latest) page and download the latest version according to your operating system:
+Visit the [StreamCap Releases](https://github.com/nianzhibai/StreamCap/releases/latest) page and download the latest version according to your operating system:
 
 - **Windows Users**: Download the `StreamCap.zip` file, extract it, and run `StreamCap.exe`.
 - **macOS Users**: Download the `StreamCap.dmg` file and follow the on-screen instructions to install, then you can find the application in the Launchpad to run it.
@@ -57,7 +58,7 @@ Ensure you have **Python 3.10** or a higher version installed.💥
 1.**Clone the Project Code**:
 
 ```bash
-git clone https://github.com/ihmily/StreamCap.git
+git clone https://github.com/nianzhibai/StreamCap.git
 cd StreamCap
 ```
 
@@ -142,10 +143,13 @@ TikTok, Twitch, PandTV, Soop, Twitcasting, CHZZK, Shopee, YouTube, LiveMe, Flext
 
 If no specific note is provided, the live stream room URL is used for recording by default.
 
+Douyin note:
+You can paste Douyin share text or a `v.douyin.com` short link directly into the recording input. The app resolves it to the final `https://live.douyin.com/<room_id>` URL before saving.
+
 ```
 Douyin:
 https://live.douyin.com/745964462470
-https://v.douyin.com/iQFeBnt/ (Node.js Required)
+https://v.douyin.com/iQFeBnt/ (Short-link example)
 https://live.douyin.com/yall1102  （Link+unique ID）
 https://v.douyin.com/CeiU5cbX  (Anchor's homepage URL)
 
@@ -307,8 +311,8 @@ For full documentation and advanced usage, visit the [official documentation](ht
 
 ## ❤️Contributors
 
-<a href="https://github.com/ihmily/StreamCap/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ihmily/StreamCap" />
+<a href="https://github.com/nianzhibai/StreamCap/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=nianzhibai/StreamCap" />
 </a>
 
 ## 📜License
