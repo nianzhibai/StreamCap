@@ -122,6 +122,72 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
         self.on_confirm_callback = AsyncMock()
         self.dialog = RecordingDialog(self.app, on_confirm_callback=self.on_confirm_callback)
 
+    async def test_build_single_recording_payload_accepts_direct_douyin_room_url(self):
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(return_value="https://live.douyin.com/845632139263"),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            recordings_info = await self.dialog._build_single_recording_payload(
+                url_value="https://live.douyin.com/845632139263",
+                streamer_name_value="主播",
+                quality_value="OD",
+                record_format_value="TS",
+                recording_dir_value="",
+                segment_visible=False,
+                segment_time_value="1800",
+                scheduled_recording_enabled=False,
+                scheduled_start_time_values=["", ""],
+                monitor_hours_values=["", ""],
+                message_push_enabled=True,
+                only_notify_no_record=False,
+                flv_use_direct_download=False,
+                rec_id=None,
+                initial_values={},
+            )
+
+        self.assertEqual(recordings_info[0]["url"], "https://live.douyin.com/845632139263")
+        normalize_mock.assert_awaited_once_with(
+            "https://live.douyin.com/845632139263",
+            proxy="http://127.0.0.1:7890",
+        )
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
+
+    async def test_build_single_recording_payload_normalizes_raw_douyin_short_link(self):
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(return_value="https://live.douyin.com/845632139263"),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            recordings_info = await self.dialog._build_single_recording_payload(
+                url_value="https://v.douyin.com/fBjnc1ZLEEY/",
+                streamer_name_value="主播",
+                quality_value="OD",
+                record_format_value="TS",
+                recording_dir_value="",
+                segment_visible=False,
+                segment_time_value="1800",
+                scheduled_recording_enabled=False,
+                scheduled_start_time_values=["", ""],
+                monitor_hours_values=["", ""],
+                message_push_enabled=True,
+                only_notify_no_record=False,
+                flv_use_direct_download=False,
+                rec_id=None,
+                initial_values={},
+            )
+
+        self.assertEqual(recordings_info[0]["url"], "https://live.douyin.com/845632139263")
+        normalize_mock.assert_awaited_once_with(
+            "https://v.douyin.com/fBjnc1ZLEEY/",
+            proxy="http://127.0.0.1:7890",
+        )
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
+
     async def test_build_single_recording_payload_normalizes_douyin_share_text(self):
         with patch(
             "app.ui.components.business.recording_dialog.normalize_douyin_input",
@@ -190,6 +256,49 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(recordings_info[0]["url"], "https://www.huya.com/12345")
         normalize_mock.assert_not_awaited()
         platform_mock.assert_called_once_with("https://www.huya.com/12345")
+
+    async def test_single_input_share_text_submit_enables_confirm_and_saves(self):
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        url_field = single_input_controls[1]
+        streamer_name_field = single_input_controls[2]
+        confirm_button = alert_dialog.actions[1]
+
+        self.assertTrue(confirm_button.disabled)
+
+        url_field.value = (
+            "8- #在抖音，记录美好生活#【主播】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+            "https://v.douyin.com/fBjnc1ZLEEY/"
+        )
+        streamer_name_field.value = "主播"
+
+        await url_field.on_change(None)
+
+        self.assertFalse(confirm_button.disabled)
+
+        with patch(
+            "app.ui.components.business.recording_dialog.normalize_douyin_input",
+            new=AsyncMock(return_value="https://live.douyin.com/845632139263"),
+        ) as normalize_mock, patch(
+            "app.ui.components.business.recording_dialog.get_platform_info",
+            return_value=("抖音直播", "douyin"),
+        ) as platform_mock:
+            await confirm_button.on_click(None)
+
+        self.on_confirm_callback.assert_awaited_once()
+        recordings_info = self.on_confirm_callback.await_args.args[0]
+        self.assertEqual(recordings_info[0]["url"], "https://live.douyin.com/845632139263")
+        self.assertFalse(alert_dialog.open)
+        normalize_mock.assert_awaited_once_with(
+            (
+                "8- #在抖音，记录美好生活#【主播】正在直播，复制下方链接，打开【抖音】，直接观看直播！ "
+                "https://v.douyin.com/fBjnc1ZLEEY/"
+            ),
+            proxy="http://127.0.0.1:7890",
+        )
+        platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
 
     async def test_single_input_normalization_failure_keeps_dialog_open_and_shows_error(self):
         await self.dialog.show_dialog()

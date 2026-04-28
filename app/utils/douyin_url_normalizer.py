@@ -24,6 +24,10 @@ def extract_douyin_candidate_url(raw_text: str) -> str | None:
     return None
 
 
+def looks_like_douyin_input(raw_text: str) -> bool:
+    return extract_douyin_candidate_url(raw_text.strip()) is not None
+
+
 async def normalize_douyin_input(raw_text: str, proxy: str | None = None, timeout: float = 10.0) -> str:
     candidate_url = extract_douyin_candidate_url(raw_text.strip())
     if not candidate_url:

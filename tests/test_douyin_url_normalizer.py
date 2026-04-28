@@ -5,11 +5,25 @@ import httpx
 
 from app.utils.douyin_url_normalizer import (
     DouyinNormalizationError,
+    looks_like_douyin_input,
     normalize_douyin_input,
 )
 
 
 class NormalizeDouyinInputTests(unittest.IsolatedAsyncioTestCase):
+    def test_detects_douyin_share_text(self):
+        self.assertTrue(
+            looks_like_douyin_input(
+                "复制下方链接，打开【抖音】，直接观看直播！ https://v.douyin.com/fBjnc1ZLEEY/"
+            )
+        )
+
+    def test_detects_direct_douyin_live_room_url(self):
+        self.assertTrue(looks_like_douyin_input("https://live.douyin.com/845632139263"))
+
+    def test_returns_false_for_non_douyin_url(self):
+        self.assertFalse(looks_like_douyin_input("https://www.huya.com/12345"))
+
     async def test_returns_live_room_url_unchanged(self):
         result = await normalize_douyin_input("https://live.douyin.com/845632139263")
 

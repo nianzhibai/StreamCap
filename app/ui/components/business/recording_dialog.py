@@ -4,15 +4,13 @@ from ....core.platforms.platform_handlers import get_platform_info
 from ....models.media.audio_format_model import AudioFormat
 from ....models.media.video_format_model import VideoFormat
 from ....models.media.video_quality_model import VideoQuality
-from ....utils.douyin_url_normalizer import DouyinNormalizationError, extract_douyin_candidate_url, normalize_douyin_input
+from ....utils.douyin_url_normalizer import (
+    DouyinNormalizationError,
+    looks_like_douyin_input,
+    normalize_douyin_input,
+)
 from ....utils import utils
 from ....utils.logger import logger
-
-try:
-    from ....utils.douyin_url_normalizer import looks_like_douyin_input
-except ImportError:
-    def looks_like_douyin_input(raw_text: str) -> bool:
-        return extract_douyin_candidate_url(raw_text or "") is not None
 
 
 class RecordingDialog:
@@ -115,7 +113,12 @@ class RecordingDialog:
 
         async def on_url_change(_):
             """Enable or disable the submit button based on whether the URL field is filled."""
-            is_active = utils.is_valid_url(url_field.value.strip()) or utils.contains_url(batch_input.value.strip())
+            single_input_value = url_field.value.strip()
+            is_active = (
+                utils.is_valid_url(single_input_value)
+                or looks_like_douyin_input(single_input_value)
+                or utils.contains_url(batch_input.value.strip())
+            )
             dialog.actions[1].disabled = not is_active
             self.page.update()
 
