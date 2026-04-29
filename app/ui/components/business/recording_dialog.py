@@ -63,6 +63,7 @@ class RecordingDialog:
         recording_dir_value,
         segment_visible,
         segment_time_value,
+        segment_count_value,
         scheduled_recording_enabled,
         scheduled_start_time_values,
         monitor_hours_values,
@@ -99,6 +100,7 @@ class RecordingDialog:
                 "speed": "X KB/s",
                 "segment_record": segment_visible,
                 "segment_time": segment_time_value,
+                "segment_count": segment_count_value,
                 "monitor_status": initial_values.get("monitor_status", True),
                 "display_title": display_title,
                 "scheduled_recording": scheduled_recording_enabled,
@@ -182,6 +184,7 @@ class RecordingDialog:
         default_record_quality = config.get_value("quality", "record_quality", VideoQuality.OD)
         segment_record = config.get_value("segment_record", "segmented_recording_enabled", False)
         segment_time = config.get_value("segment_time", "video_segment_time", 1800)
+        segment_count = config.get_value("segment_count", "segment_count", 0)
         only_notify_no_record = config.get_value("only_notify_no_record", default=False)
         flv_use_direct_download = config.get_value("flv_use_direct_download", default=False)
 
@@ -289,6 +292,7 @@ class RecordingDialog:
         async def on_segment_setting_change(e):
             selected_value = e.control.value
             segment_input.visible = selected_value == self._["yes"]
+            segment_count_input.visible = selected_value == self._["yes"]
             self.page.update()
 
         segment_setting_dropdown = ft.Dropdown(
@@ -311,6 +315,16 @@ class RecordingDialog:
             filled=False,
             value=segment_time,
             visible=segment_record,
+        )
+
+        segment_count_input = ft.TextField(
+            label=self._["segment_count"],
+            hint_text=self._["input_segment_count"],
+            border_radius=5,
+            filled=False,
+            value=segment_count,
+            visible=segment_record,
+            keyboard_type=ft.KeyboardType.NUMBER,
         )
 
         scheduled_recording = initial_values.get("scheduled_recording", False)
@@ -480,6 +494,7 @@ class RecordingDialog:
                                 recording_dir_field,
                                 segment_setting_dropdown,
                                 segment_input,
+                                segment_count_input,
                                 scheduled_setting_dropdown,
                                 *time_rows,
                                 message_push_dropdown,
@@ -520,6 +535,7 @@ class RecordingDialog:
                         recording_dir_value=recording_dir_field.value,
                         segment_visible=segment_input.visible,
                         segment_time_value=segment_input.value,
+                        segment_count_value=segment_count_input.value,
                         scheduled_recording_enabled=scheduled_setting_dropdown.value == "true",
                         scheduled_start_time_values=[i.value for i in time_inputs],
                         monitor_hours_values=[i.value for i in hour_inputs],
