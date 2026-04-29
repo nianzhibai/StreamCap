@@ -49,7 +49,7 @@ class Recording:
         self.monitor_status = monitor_status
         self.segment_record = segment_record
         self.segment_time = segment_time
-        self.segment_count = segment_count or 0
+        self.segment_count = max(0, int(segment_count or 0))
         self.streamer_name = streamer_name
         self.scheduled_recording = scheduled_recording
         self.scheduled_start_time = scheduled_start_time
@@ -121,7 +121,7 @@ class Recording:
             data.get("quality"),
             data.get("segment_record"),
             data.get("segment_time"),
-            data.get("segment_count"),
+            data.get("segment_count", 0),
             data.get("monitor_status"),
             data.get("scheduled_recording"),
             data.get("scheduled_start_time"),
