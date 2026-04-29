@@ -11,6 +11,7 @@ class Recording:
         quality,
         segment_record,
         segment_time,
+        segment_count,
         monitor_status,
         scheduled_recording,
         scheduled_start_time,
@@ -30,6 +31,7 @@ class Recording:
         :param quality: Quality of the recorded video, e.g., 'OD', 'UHD', 'HD'.
         :param segment_record: Whether to enable segmented recording.
         :param segment_time: Time interval (in seconds) for segmented recording if enabled.
+        :param segment_count: Number of segments to record, 0 means unlimited.
         :param monitor_status: Monitoring status, whether the live room is being monitored.
         :param scheduled_recording: Whether to enable scheduled recording.
         :param scheduled_start_time: Scheduled start time for recording (string format like '18:30:00').
@@ -47,6 +49,7 @@ class Recording:
         self.monitor_status = monitor_status
         self.segment_record = segment_record
         self.segment_time = segment_time
+        self.segment_count = segment_count or 0
         self.streamer_name = streamer_name
         self.scheduled_recording = scheduled_recording
         self.scheduled_start_time = scheduled_start_time
@@ -94,6 +97,7 @@ class Recording:
             "quality": self.quality,
             "segment_record": self.segment_record,
             "segment_time": self.segment_time,
+            "segment_count": self.segment_count,
             "monitor_status": self.monitor_status,
             "scheduled_recording": self.scheduled_recording,
             "scheduled_start_time": self.scheduled_start_time,
@@ -117,6 +121,7 @@ class Recording:
             data.get("quality"),
             data.get("segment_record"),
             data.get("segment_time"),
+            data.get("segment_count"),
             data.get("monitor_status"),
             data.get("scheduled_recording"),
             data.get("scheduled_start_time"),

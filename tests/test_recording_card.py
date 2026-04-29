@@ -79,6 +79,7 @@ class RecordingCardManagerTests(unittest.TestCase):
             quality="OD",
             segment_record=False,
             segment_time="1800",
+            segment_count=0,
             monitor_status=False,
             scheduled_recording=False,
             scheduled_start_time="",
