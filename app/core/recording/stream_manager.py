@@ -319,18 +319,12 @@ class LiveStreamRecorder:
         save_dir = os.path.dirname(save_path)
         file_prefix = os.path.basename(save_path).split("_%03d")[0]
 
-        logger.info(f"Segment monitor started - save_path: {save_path}")
-        logger.info(f"Segment monitor - save_dir: {save_dir}, file_prefix: {file_prefix}, format: {self.save_format}")
-
         while not self.should_stop:
             await asyncio.sleep(5)  # 每5秒检查一次
 
             # 统计已生成的分段文件数量
             pattern = os.path.join(save_dir, f"{file_prefix}_*.{self.save_format}")
             segment_files = glob.glob(pattern)
-            
-            logger.info(f"Segment monitor - pattern: {pattern}, found: {len(segment_files)} files, limit: {self.segment_count}")
-            logger.info(f"Segment monitor - files: {segment_files}")
 
             if len(segment_files) >= self.segment_count:
                 logger.info(f"Reached segment count limit {self.segment_count}, stopping recording")
