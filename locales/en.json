@@ -107,7 +107,9 @@
     "video": "Video",
     "audio": "Audio",
     "duplicate_url_title": "Duplicate Live Room URL",
-    "duplicate_url_content": "The live room URL already exists, do you want to continue adding?"
+    "duplicate_url_content": "The live room URL already exists, do you want to continue adding?",
+    "segment_count": "Segment Count",
+    "input_segment_count": "Enter segment count (0 for unlimited)"
   },
   "search_dialog": {
     "search_keyword": "Enter search keyword"

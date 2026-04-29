@@ -107,7 +107,9 @@
     "video": "视频",
     "audio": "音频",
     "duplicate_url_title": "重复的直播间地址",
-    "duplicate_url_content": "该直播间已存在，是否继续添加？"
+    "duplicate_url_content": "该直播间已存在，是否继续添加？",
+    "segment_count": "录制段数",
+    "input_segment_count": "输入录制段数（0表示无限录制）"
   },
   "search_dialog": {
     "search_keyword": "输入搜索关键词"
