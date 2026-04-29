@@ -43,6 +43,8 @@ class LiveStreamRecorder:
         self.output_dir = self._get_info("output_dir")
         self.segment_record = self._get_info("segment_record", default=False)
         self.segment_time = self._get_info("segment_time", default=self.DEFAULT_SEGMENT_TIME)
+        self.segment_count = self._get_info("segment_count", default=0)
+        self.current_segment_count = 0
         self.quality = self._get_info("quality", default=self.DEFAULT_QUALITY)
         self.save_format = self._get_info("save_format", default=self.DEFAULT_SAVE_FORMAT).lower()
         self.proxy = self.is_use_proxy()
@@ -307,6 +309,29 @@ class LiveStreamRecorder:
             else:
                 self.recording.status_info = RecordingStatus.RECORDING_ERROR
 
+    async def monitor_segment_count(self, save_path):
+        """监控分段录制数量，达到设定值时自动停止"""
+        if self.segment_count <= 0:
+            return  # 无限录制
+
+        import glob
+
+        # 获取保存路径的目录和文件名前缀
+        save_dir = os.path.dirname(save_path)
+        file_prefix = os.path.basename(save_path).split("_%03d")[0]
+
+        while not self.should_stop:
+            await asyncio.sleep(5)  # 每5秒检查一次
+
+            # 统计已生成的分段文件数量
+            pattern = os.path.join(save_dir, f"{file_prefix}_*")
+            segment_files = glob.glob(pattern)
+
+            if len(segment_files) >= self.segment_count:
+                logger.info(f"已达到设定的录制段数 {self.segment_count}，自动停止录制")
+                self.should_stop = True
+                break
+
     async def start_ffmpeg(
             self,
             record_name: str,
@@ -322,6 +347,7 @@ class LiveStreamRecorder:
 
         logger.info(f"Starting ffmpeg recording - recorder id: {id(self)}, rec_id: {self.recording.rec_id}")
         self.should_stop = False
+        monitor_task = None
 
         try:
             save_file_path = ffmpeg_command[-1]
@@ -333,6 +359,9 @@ class LiveStreamRecorder:
                 stderr=asyncio.subprocess.PIPE,
                 startupinfo=self.subprocess_start_info
             )
+
+            if self.segment_record and self.segment_count > 0:
+                monitor_task = asyncio.create_task(self.monitor_segment_count(ffmpeg_command[-1]))
 
             self.app.add_ffmpeg_process(process)
             self.recording.status_info = RecordingStatus.RECORDING
@@ -488,6 +517,8 @@ class LiveStreamRecorder:
                 logger.debug(f"Failed to update UI: {e}")
             return False
         finally:
+            if monitor_task:
+                monitor_task.cancel()
             self.recording.record_url = None
 
         return True
