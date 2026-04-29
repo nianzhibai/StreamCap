@@ -297,6 +297,7 @@ class RecordingManager:
             "output_dir": output_dir,
             "segment_record": recording.segment_record,
             "segment_time": recording.segment_time,
+            "segment_count": recording.segment_count,
             "save_format": recording.record_format,
             "quality": recording.quality,
         }
