@@ -31,6 +31,7 @@ class App:
         self.process_manager = AsyncProcessManager()
         self.config_manager = ConfigManager(self.run_path)
         self.is_web_mode = False
+        self.is_mobile = False
         self.auth_manager = None
         self.current_username = None
         self.content_area = ft.Column(
