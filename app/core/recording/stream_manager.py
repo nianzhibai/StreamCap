@@ -44,7 +44,6 @@ class LiveStreamRecorder:
         self.segment_record = self._get_info("segment_record", default=False)
         self.segment_time = self._get_info("segment_time", default=self.DEFAULT_SEGMENT_TIME)
         self.segment_count = self._get_info("segment_count", default=0)
-        self.current_segment_count = 0
         self.quality = self._get_info("quality", default=self.DEFAULT_QUALITY)
         self.save_format = self._get_info("save_format", default=self.DEFAULT_SAVE_FORMAT).lower()
         self.proxy = self.is_use_proxy()
@@ -324,11 +323,11 @@ class LiveStreamRecorder:
             await asyncio.sleep(5)  # 每5秒检查一次
 
             # 统计已生成的分段文件数量
-            pattern = os.path.join(save_dir, f"{file_prefix}_*")
+            pattern = os.path.join(save_dir, f"{file_prefix}_*.{self.save_format}")
             segment_files = glob.glob(pattern)
 
             if len(segment_files) >= self.segment_count:
-                logger.info(f"已达到设定的录制段数 {self.segment_count}，自动停止录制")
+                logger.info(f"Reached segment count limit {self.segment_count}, stopping recording")
                 self.should_stop = True
                 break
 
