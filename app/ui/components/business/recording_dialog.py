@@ -325,6 +325,7 @@ class RecordingDialog:
             value=segment_count,
             visible=segment_record,
             keyboard_type=ft.KeyboardType.NUMBER,
+            input_filter=ft.NumbersOnlyInputFilter(),
         )
 
         scheduled_recording = initial_values.get("scheduled_recording", False)
