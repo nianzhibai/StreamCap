@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
 
@@ -23,6 +23,8 @@ class FakeLanguageManager:
                 "is_segment_enabled": "Enable Segmented Recording",
                 "segment_record_time": "Segment Recording Time",
                 "input_segment_time": "Enter Segment Time",
+                "segment_count": "Segment Count",
+                "input_segment_count": "Enter Segment Count",
                 "scheduled_recording": "Enable Daily Scheduled Monitoring",
                 "scheduled_start_time": "Daily Monitoring Start Time",
                 "monitor_hours": "Daily Monitoring Hours",
@@ -143,6 +145,7 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
                 recording_dir_value="",
                 segment_visible=False,
                 segment_time_value="1800",
+                segment_count_value=0,
                 scheduled_recording_enabled=False,
                 scheduled_start_time_values=["", ""],
                 monitor_hours_values=["", ""],
@@ -176,6 +179,7 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
                 recording_dir_value="",
                 segment_visible=False,
                 segment_time_value="1800",
+                segment_count_value=0,
                 scheduled_recording_enabled=False,
                 scheduled_start_time_values=["", ""],
                 monitor_hours_values=["", ""],
@@ -212,6 +216,7 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
                 recording_dir_value="/tmp/output",
                 segment_visible=False,
                 segment_time_value="1800",
+                segment_count_value=0,
                 scheduled_recording_enabled=False,
                 scheduled_start_time_values=["", ""],
                 monitor_hours_values=["", ""],
@@ -248,6 +253,7 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
                 recording_dir_value="",
                 segment_visible=False,
                 segment_time_value="1800",
+                segment_count_value=0,
                 scheduled_recording_enabled=False,
                 scheduled_start_time_values=["", ""],
                 monitor_hours_values=["", ""],
@@ -370,6 +376,54 @@ class RecordingDialogSingleInputTests(unittest.IsolatedAsyncioTestCase):
         platform_mock.assert_called_once_with("https://live.douyin.com/845632139263")
         self.assertTrue(alert_dialog.open)
         self.assertIs(self.app.page.overlay[-1], self.dialog.url_duplicate_confirm_dialog)
+
+
+class RecordingDialogSegmentCountTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.app = FakeApp()
+        self.on_confirm_callback = AsyncMock()
+        self.dialog = RecordingDialog(self.app, on_confirm_callback=self.on_confirm_callback)
+
+    async def test_segment_count_default_value(self):
+        """Test segment_count default value is 0"""
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        segment_count_input = single_input_controls[8]
+        self.assertEqual(segment_count_input.value, 0)
+
+    async def test_segment_count_visibility_when_segment_enabled(self):
+        """Test segment_count_input is visible when segment recording is enabled"""
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        segment_setting_dropdown = single_input_controls[6]
+        segment_count_input = single_input_controls[8]
+
+        segment_setting_dropdown.value = "Yes"
+        event = MagicMock()
+        event.control = segment_setting_dropdown
+        await segment_setting_dropdown.on_change(event)
+
+        self.assertTrue(segment_count_input.visible)
+
+    async def test_segment_count_visibility_when_segment_disabled(self):
+        """Test segment_count_input is hidden when segment recording is disabled"""
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        segment_setting_dropdown = single_input_controls[6]
+        segment_count_input = single_input_controls[8]
+
+        segment_setting_dropdown.value = "No"
+        event = MagicMock()
+        event.control = segment_setting_dropdown
+        await segment_setting_dropdown.on_change(event)
+
+        self.assertFalse(segment_count_input.visible)
 
 
 class RecordingDialogBatchInputTests(unittest.IsolatedAsyncioTestCase):
