@@ -136,7 +136,11 @@ class RecordingCardManager:
                         action_buttons,
                         spacing=0 if self.app.is_mobile else 3,
                         run_spacing=0 if self.app.is_mobile else 3,
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN if self.app.is_mobile else ft.MainAxisAlignment.START,
+                        alignment=(
+                            ft.MainAxisAlignment.SPACE_BETWEEN
+                            if self.app.is_mobile
+                            else ft.MainAxisAlignment.START
+                        ),
                         scroll=None,
                         wrap=False,
                     ),

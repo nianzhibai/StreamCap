@@ -81,7 +81,7 @@
     "flv_use_direct_download_tip": "开启后延迟更低，但不支持分段录制",
     "input_anchor_name": "输入主播名称",
     "default_input": "可默认不填",
-    "select_record_format": "选择录制格式-默认TS",
+    "select_record_format": "选择录制格式-默认MP4",
     "input_save_path": "输入录制保存路径",
     "is_segment_enabled": "分段录制是否开启",
     "segment_record_time": "录制分段时间",

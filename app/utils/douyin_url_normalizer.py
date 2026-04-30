@@ -2,7 +2,6 @@ import re
 
 import httpx
 
-
 SHORT_LINK_RE = re.compile(r"https?://v\.douyin\.com/[A-Za-z0-9\-_]+/?", re.IGNORECASE)
 LIVE_ROOM_RE = re.compile(r"https?://live\.douyin\.com/([A-Za-z0-9._-]+)", re.IGNORECASE)
 WEB_RID_RE = re.compile(r'\\?"webRid\\?"\s*:\s*\\?"(\d+)\\?"')

@@ -81,7 +81,7 @@
     "flv_use_direct_download_tip": "Enable lower latency, but does not support segmented recording",
     "input_anchor_name": "Enter Broadcaster Name",
     "default_input": "Can be left blank",
-    "select_record_format": "Select Recording Format - Default ts",
+    "select_record_format": "Select Recording Format - Default mp4",
     "input_save_path": "Enter Save Path for Recordings",
     "is_segment_enabled": "Enable Segmented Recording",
     "segment_record_time": "Segment Recording Time",

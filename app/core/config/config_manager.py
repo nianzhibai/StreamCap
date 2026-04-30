@@ -9,6 +9,7 @@ from ...utils.logger import logger
 from .env_overrides import apply_user_config_env_overrides
 
 T = TypeVar("T")
+DEFAULT_RECORDING_MIGRATION = "2026-04-30-default-mp4-proxy-off"
 
 
 class ConfigManager:
@@ -53,8 +54,37 @@ class ConfigManager:
 
     def init_user_config(self):
         if os.path.exists(self.user_config_path) and self.load_user_config():
+            self.migrate_user_config_defaults()
             return
         shutil.copy(self.default_config_path, self.user_config_path)
+        self.migrate_user_config_defaults()
+
+    def migrate_user_config_defaults(self):
+        user_config = self._load_config(self.user_config_path, "An error occurred while loading user config")
+        if not user_config:
+            return
+
+        migrations = user_config.get("_config_migrations", [])
+        if not isinstance(migrations, list):
+            migrations = []
+        user_config["_config_migrations"] = migrations
+
+        if DEFAULT_RECORDING_MIGRATION in migrations:
+            return
+
+        if user_config.get("video_format") == "TS":
+            user_config["video_format"] = "MP4"
+        if user_config.get("enable_proxy") is True:
+            user_config["enable_proxy"] = False
+
+        migrations.append(DEFAULT_RECORDING_MIGRATION)
+
+        try:
+            with open(self.user_config_path, "w", encoding="utf-8") as file:
+                json.dump(user_config, file, ensure_ascii=False, indent=4)
+            logger.info("User configuration defaults migrated.")
+        except Exception as e:
+            logger.error(f"Failed to migrate user configuration defaults: {e}")
 
     def init_cookies_config(self):
         cookies_config = {}

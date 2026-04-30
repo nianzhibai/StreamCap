@@ -6,12 +6,12 @@ from ....core.platforms.platform_handlers import get_platform_info
 from ....models.media.audio_format_model import AudioFormat
 from ....models.media.video_format_model import VideoFormat
 from ....models.media.video_quality_model import VideoQuality
+from ....utils import utils
 from ....utils.douyin_url_normalizer import (
     DouyinNormalizationError,
     looks_like_douyin_input,
     normalize_douyin_input,
 )
-from ....utils import utils
 from ....utils.logger import logger
 
 

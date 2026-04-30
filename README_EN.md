@@ -26,6 +26,7 @@ The list below tracks changes added or adjusted in this fork compared with the u
 - `2026-04-27` Fixed the mobile web recordings page so each recording card shows the monitor action instead of hiding it off-screen.
 - `2026-04-28` The recording input now accepts Douyin share text and `v.douyin.com` short links directly; the app resolves them to the final live-room URL before saving and blocks saving if resolution fails.
 - `2026-04-30` `.env.example` now includes Web security login options: `LOGIN_REQUIRED`, `WEB_AUTH_USERNAME`, and `WEB_AUTH_PASSWORD`.
+- `2026-04-30` Fixed default recording settings for new environments: MP4 is now the default recording format, proxy is disabled by default, and the add-recording dialog labels were updated.
 
 
 StreamCap is a multi-platform live stream recording client based on FFmpeg and StreamGet. It covers over 40 mainstream live streaming platforms both domestically and internationally, and supports features such as batch recording, loop monitoring, timed monitoring, and automatic transcoding.

@@ -31,6 +31,7 @@
 - `2026-04-30` 存储页面新增删除文件功能：支持删除视频文件，并会自动清理同名的 ts 和 mp4 文件。
 - `2026-04-30` 更新 `.env.example` 默认配置：`PLATFORM=web`，`HOST=0.0.0.0`，`PORT=55554`，`VIDEO_API_PORT=17878`。
 - `2026-04-30` `.env.example` 新增 Web 安全登录配置：支持通过 `LOGIN_REQUIRED`、`WEB_AUTH_USERNAME`、`WEB_AUTH_PASSWORD` 控制登录开关和默认账号。
+- `2026-04-30` 修正默认录制配置：新环境默认录制格式为 MP4，默认关闭代理，并同步新增录制弹窗文案。
 
 StreamCap 是一个基于FFmpeg和StreamGet的多平台直播流录制客户端，覆盖 40+ 国内外主流直播平台，支持批量录制、循环监控、定时监控和自动转码等功能。
 
