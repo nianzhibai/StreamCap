@@ -119,6 +119,12 @@ class RecordingCardManager:
             delete_button,
             monitor_button
         ]
+        if self.app.is_mobile:
+            for button in action_buttons:
+                button.width = 34
+                button.height = 34
+                button.icon_size = 18
+                button.style = ft.ButtonStyle(padding=0)
 
         card_container = ft.Container(
             content=ft.Column(
@@ -128,10 +134,10 @@ class RecordingCardManager:
                     speed_text_label,
                     ft.Row(
                         action_buttons,
-                        spacing=5 if self.app.is_mobile else 3,
-                        run_spacing=3,
-                        alignment=ft.MainAxisAlignment.SPACE_EVENLY if self.app.is_mobile else ft.MainAxisAlignment.START,
-                        scroll=ft.ScrollMode.HIDDEN,
+                        spacing=0 if self.app.is_mobile else 3,
+                        run_spacing=0 if self.app.is_mobile else 3,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN if self.app.is_mobile else ft.MainAxisAlignment.START,
+                        scroll=None,
                         wrap=False,
                     ),
                 ],

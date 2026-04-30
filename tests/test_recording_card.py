@@ -68,7 +68,7 @@ class FakeApp:
 
 
 class RecordingCardManagerTests(unittest.TestCase):
-    def test_mobile_action_row_wraps_to_keep_monitor_button_visible(self):
+    def test_mobile_action_row_keeps_all_six_buttons_visible_without_scroll(self):
         app = FakeApp(is_mobile=True)
         manager = RecordingCardManager(app)
         recording = Recording(
@@ -93,8 +93,11 @@ class RecordingCardManagerTests(unittest.TestCase):
         card_data = manager._create_card_components(recording)
         action_row = card_data["card"].content.content.controls[3]
 
-        self.assertTrue(action_row.wrap)
-        self.assertEqual(len(action_row.controls), 7)
+        self.assertFalse(action_row.wrap)
+        self.assertIsNone(action_row.scroll)
+        self.assertEqual(action_row.spacing, 0)
+        self.assertEqual(len(action_row.controls), 6)
+        self.assertLessEqual(sum(button.width for button in action_row.controls), 204)
 
 
 if __name__ == "__main__":

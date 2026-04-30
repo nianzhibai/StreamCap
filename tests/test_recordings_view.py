@@ -53,17 +53,16 @@ class FakeApp:
 
 
 class RecordingsPageTests(unittest.TestCase):
-    def test_mobile_grid_layout_uses_taller_cards_for_wrapped_actions(self):
+    def test_mobile_single_column_layout_uses_list_view(self):
         app = FakeApp(is_mobile=True, width=320)
         page = RecordingsPage(app)
         page.recording_card_area.content.update = lambda: None
 
         asyncio.run(page.recalculate_grid_columns())
 
-        grid_view = page.recording_card_area.content
-        self.assertIsInstance(grid_view, ft.GridView)
-        self.assertEqual(grid_view.runs_count, 1)
-        self.assertLess(grid_view.child_aspect_ratio, 2.0)
+        list_view = page.recording_card_area.content
+        self.assertIsInstance(list_view, ft.ListView)
+        self.assertEqual(list_view.spacing, 10)
 
 
 if __name__ == "__main__":

@@ -385,13 +385,23 @@ class RecordingDialogSegmentCountTests(unittest.IsolatedAsyncioTestCase):
         self.dialog = RecordingDialog(self.app, on_confirm_callback=self.on_confirm_callback)
 
     async def test_segment_count_default_value(self):
-        """Test segment_count default value is 0"""
+        """Test segment_count default value is 2"""
         await self.dialog.show_dialog()
 
         alert_dialog = self.app.page.overlay[-1]
         single_input_controls = alert_dialog.content.tabs[0].content.content.controls
         segment_count_input = single_input_controls[8]
-        self.assertEqual(segment_count_input.value, 0)
+        self.assertEqual(segment_count_input.value, 2)
+
+    async def test_record_format_default_value_is_mp4(self):
+        """Test record format default value is MP4"""
+        await self.dialog.show_dialog()
+
+        alert_dialog = self.app.page.overlay[-1]
+        single_input_controls = alert_dialog.content.tabs[0].content.content.controls
+        format_row = single_input_controls[3]
+        record_format_input = format_row.controls[1]
+        self.assertEqual(record_format_input.value, "MP4")
 
     async def test_segment_count_visibility_when_segment_enabled(self):
         """Test segment_count_input is visible when segment recording is enabled"""
