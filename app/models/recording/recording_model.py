@@ -121,7 +121,7 @@ class Recording:
             data.get("quality"),
             data.get("segment_record"),
             data.get("segment_time"),
-            data.get("segment_count", 0),
+            data.get("segment_count", 2),
             data.get("monitor_status"),
             data.get("scheduled_recording"),
             data.get("scheduled_start_time"),

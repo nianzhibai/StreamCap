@@ -338,7 +338,7 @@ class SettingsPage(PageBase):
                             self._["video_record_format"],
                             ft.Dropdown(
                                 options=[ft.dropdown.Option(i) for i in self.get_supported_record_format()],
-                                value=self.get_config_value("video_format", VideoFormat.TS),
+                                value=self.get_config_value("video_format", VideoFormat.MP4),
                                 width=200,
                                 data="video_format",
                                 on_change=self.on_change,

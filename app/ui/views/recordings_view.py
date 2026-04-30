@@ -18,7 +18,7 @@ class RecordingsPage(PageBase):
     MOBILE_GRID_COLUMN_WIDTH = 250
     MOBILE_GRID_CHILD_ASPECT_RATIO = 2.1
     DESKTOP_GRID_COLUMN_WIDTH = 350
-    DESKTOP_GRID_CHILD_ASPECT_RATIO = 2.8
+    DESKTOP_GRID_CHILD_ASPECT_RATIO = 2.3
 
     def __init__(self, app):
         super().__init__(app)
@@ -518,7 +518,7 @@ class RecordingsPage(PageBase):
                     record_format=recording_info["record_format"],
                     segment_record=recording_info["segment_record"],
                     segment_time=recording_info["segment_time"],
-                    segment_count=recording_info.get("segment_count", 0),
+                    segment_count=recording_info.get("segment_count", 2),
                     monitor_status=recording_info["monitor_status"],
                     scheduled_recording=recording_info["scheduled_recording"],
                     scheduled_start_time=recording_info["scheduled_start_time"],
@@ -534,10 +534,10 @@ class RecordingsPage(PageBase):
                     url=recording_info["url"],
                     streamer_name=recording_info["streamer_name"],
                     quality=recording_info["quality"],
-                    record_format=user_config.get("video_format", "TS"),
+                    record_format=user_config.get("video_format", "mp4"),
                     segment_record=user_config.get("segmented_recording_enabled", False),
                     segment_time=user_config.get("video_segment_time", "1800"),
-                    segment_count=user_config.get("segment_count", 0),
+                    segment_count=user_config.get("segment_count", 2),
                     monitor_status=True,
                     scheduled_recording=user_config.get("scheduled_recording", False),
                     scheduled_start_time=user_config.get("scheduled_start_time"),
