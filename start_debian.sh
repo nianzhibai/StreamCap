@@ -69,7 +69,7 @@ bootstrap_env_file() {
 
   log "Creating .env from .env.example"
   cp "${ENV_EXAMPLE_FILE}" "${ENV_FILE}"
-  log ".env created. Edit ${ENV_FILE} if you need to change PLATFORM, HOST, PORT, or other options."
+  log ".env created. Edit ${ENV_FILE} if you need to change PLATFORM, HOST, PORT, or web login options."
 }
 
 venv_is_ready() {

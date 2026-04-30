@@ -1,5 +1,7 @@
 import copy
+import os
 import unittest
+from unittest.mock import patch
 
 from app.ui.views.settings_view import SettingsPage
 
@@ -52,6 +54,14 @@ class SettingsPageTests(unittest.TestCase):
 
         app.config_manager.user_config_data["login_required"] = True
         settings_page.refresh_runtime_configs()
+
+        self.assertTrue(settings_page.user_config["login_required"])
+
+    def test_refresh_runtime_configs_applies_login_required_env_override(self):
+        app = FakeApp()
+
+        with patch.dict(os.environ, {"LOGIN_REQUIRED": "true"}):
+            settings_page = SettingsPage(app)
 
         self.assertTrue(settings_page.user_config["login_required"])
 

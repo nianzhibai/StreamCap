@@ -3,6 +3,7 @@ import os
 
 import flet as ft
 
+from ...core.config.env_overrides import apply_user_config_env_overrides
 from ...models.media.audio_format_model import AudioFormat
 from ...models.media.video_format_model import VideoFormat
 from ...models.media.video_quality_model import VideoQuality
@@ -19,7 +20,7 @@ class SettingsPage(PageBase):
         self.page_name = "settings"
         self.config_manager = self.app.config_manager
 
-        self.user_config = self.config_manager.load_user_config()
+        self.user_config = apply_user_config_env_overrides(self.config_manager.load_user_config())
         self.language_option = self.config_manager.load_language_config()
         self.default_config = self.config_manager.load_default_config()
         self.cookies_config = self.config_manager.load_cookies_config()
@@ -40,7 +41,7 @@ class SettingsPage(PageBase):
         self.page.on_keyboard_event = self.on_keyboard
 
     def refresh_runtime_configs(self):
-        self.user_config = self.config_manager.load_user_config()
+        self.user_config = apply_user_config_env_overrides(self.config_manager.load_user_config())
         self.default_config = self.config_manager.load_default_config()
         self.cookies_config = self.config_manager.load_cookies_config()
         self.accounts_config = self.config_manager.load_accounts_config()

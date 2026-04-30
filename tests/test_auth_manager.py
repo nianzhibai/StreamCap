@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 from app.auth.auth_manager import AuthManager
 
@@ -136,6 +137,46 @@ class AuthManagerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(old_success)
         self.assertTrue(new_success)
+
+    async def test_initialize_applies_web_auth_credentials_from_environment(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "WEB_AUTH_USERNAME": "streamcap",
+                "WEB_AUTH_PASSWORD": "secret-password",
+            },
+        ):
+            await self.manager.initialize()
+
+        user = self.app.config_manager.web_auth["users"][0]
+        self.assertEqual(user["username"], "streamcap")
+        self.assertNotEqual(user["password_hash"], "secret-password")
+
+        old_success, _ = await self.manager.authenticate("admin", "admin")
+        new_success, token = await self.manager.authenticate("streamcap", "secret-password")
+
+        self.assertFalse(old_success)
+        self.assertTrue(new_success)
+        self.assertIsNotNone(token)
+
+    async def test_initialize_updates_only_username_when_env_password_is_missing(self):
+        original_hash = self.app.config_manager.web_auth["users"][0]["password_hash"]
+        original_salt = self.app.config_manager.web_auth["users"][0]["salt"]
+
+        with patch.dict(
+            "os.environ",
+            {"WEB_AUTH_USERNAME": "streamcap", "WEB_AUTH_PASSWORD": ""},
+            clear=False,
+        ):
+            await self.manager.initialize()
+
+        user = self.app.config_manager.web_auth["users"][0]
+        self.assertEqual(user["username"], "streamcap")
+        self.assertEqual(user["password_hash"], original_hash)
+        self.assertEqual(user["salt"], original_salt)
+
+        success, _ = await self.manager.authenticate("streamcap", "admin")
+        self.assertTrue(success)
 
 
 if __name__ == "__main__":

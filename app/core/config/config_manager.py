@@ -6,6 +6,7 @@ from typing import TypeVar
 import aiofiles
 
 from ...utils.logger import logger
+from .env_overrides import apply_user_config_env_overrides
 
 T = TypeVar("T")
 
@@ -91,7 +92,8 @@ class ConfigManager:
         return self._load_config(self.default_config_path, "An error occurred while loading default config")
 
     def load_user_config(self):
-        return self._load_config(self.user_config_path, "An error occurred while loading user config")
+        user_config = self._load_config(self.user_config_path, "An error occurred while loading user config")
+        return apply_user_config_env_overrides(user_config)
 
     def load_recordings_config(self):
         return self._load_config(self.recordings_config_path, "An error occurred while loading recordings config")

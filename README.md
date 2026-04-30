@@ -30,6 +30,7 @@
 - `2026-04-30` 移除 Web 端录制卡片的"打开文件夹"按钮（服务器环境下不可用），并优化移动端按钮布局。
 - `2026-04-30` 存储页面新增删除文件功能：支持删除视频文件，并会自动清理同名的 ts 和 mp4 文件。
 - `2026-04-30` 更新 `.env.example` 默认配置：`PLATFORM=web`，`HOST=0.0.0.0`，`PORT=55554`，`VIDEO_API_PORT=17878`。
+- `2026-04-30` `.env.example` 新增 Web 安全登录配置：支持通过 `LOGIN_REQUIRED`、`WEB_AUTH_USERNAME`、`WEB_AUTH_PASSWORD` 控制登录开关和默认账号。
 
 StreamCap 是一个基于FFmpeg和StreamGet的多平台直播流录制客户端，覆盖 40+ 国内外主流直播平台，支持批量录制、循环监控、定时监控和自动转码等功能。
 
@@ -65,6 +66,16 @@ python3 main.py
 ```
 
 程序会按照 `.env` 中的配置启动。如果你需要修改运行方式，例如 `PLATFORM`、`HOST`、`PORT` 等，请直接编辑 `.env`。
+
+Web 安全登录也可以直接在 `.env` 中配置：
+
+```env
+LOGIN_REQUIRED=true
+WEB_AUTH_USERNAME=admin
+WEB_AUTH_PASSWORD=admin
+```
+
+将 `LOGIN_REQUIRED` 改为 `false` 可关闭 Web 登录验证。`WEB_AUTH_PASSWORD` 会在程序启动时写入加盐哈希，不会以明文保存到 `config/web_auth.json`。
 
 ### 1.**运行预构建的程序**：
 
@@ -104,6 +115,16 @@ pip install -r requirements-web.txt
 ```bash
 cp .env.example .env
 ```
+
+Web 模式下可在 `.env` 中启用或关闭登录，并设置登录账号：
+
+```env
+LOGIN_REQUIRED=true
+WEB_AUTH_USERNAME=admin
+WEB_AUTH_PASSWORD=admin
+```
+
+如果只修改用户名，已有密码不会被重置；如果设置了 `WEB_AUTH_PASSWORD`，启动时会更新 Web 登录密码。
 
 4.**运行程序**：
 

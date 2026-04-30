@@ -8,6 +8,9 @@ services:
     environment:
       - PORT=${PORT:-6006}
       - TZ=${TZ:-Asia/Shanghai}
+      - LOGIN_REQUIRED=${LOGIN_REQUIRED:-true}
+      - WEB_AUTH_USERNAME=${WEB_AUTH_USERNAME:-}
+      - WEB_AUTH_PASSWORD=${WEB_AUTH_PASSWORD:-}
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
