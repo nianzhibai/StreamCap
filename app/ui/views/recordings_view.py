@@ -16,7 +16,7 @@ from ..filters import RecordingFilters
 
 class RecordingsPage(PageBase):
     MOBILE_GRID_COLUMN_WIDTH = 250
-    MOBILE_GRID_CHILD_ASPECT_RATIO = 1.9
+    MOBILE_GRID_CHILD_ASPECT_RATIO = 1.7
     DESKTOP_GRID_COLUMN_WIDTH = 350
     DESKTOP_GRID_CHILD_ASPECT_RATIO = 2.3
 
