@@ -138,7 +138,6 @@ class RecordingCardManager:
                 spacing=3,
                 tight=True
             ),
-            alignment=ft.alignment.center,
             padding=8,
             on_click=lambda e, rec=recording: self.app.page.run_task(self.recording_card_on_click, e, rec),
             bgcolor=self.get_card_background_color(recording),
