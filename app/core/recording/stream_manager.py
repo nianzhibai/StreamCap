@@ -329,6 +329,7 @@ class LiveStreamRecorder:
             if len(segment_files) >= self.segment_count:
                 logger.info(f"Reached segment count limit {self.segment_count}, stopping recording")
                 self.should_stop = True
+                await self.app.record_manager.stop_monitor_recording(self.recording, auto_save=True)
                 break
 
     async def start_ffmpeg(

@@ -95,11 +95,6 @@ class RecordingCardManager:
             weight=RecordingCardState.get_title_weight(recording),
         )
 
-        open_folder_button = ft.IconButton(
-            icon=ft.Icons.FOLDER,
-            tooltip=self._["open_folder"],
-            on_click=lambda e, rec=recording: self.app.page.run_task(self.recording_dir_button_on_click, e, rec),
-        )
         recording_info_button = ft.IconButton(
             icon=ft.Icons.INFO,
             tooltip=self._["recording_info"],
@@ -118,7 +113,6 @@ class RecordingCardManager:
 
         action_buttons = [
             record_button,
-            open_folder_button,
             recording_info_button,
             preview_button,
             edit_button,
@@ -134,8 +128,8 @@ class RecordingCardManager:
                     speed_text_label,
                     ft.Row(
                         action_buttons,
-                        spacing=3,
-                        run_spacing=3,
+                        spacing=8 if self.app.is_mobile else 3,
+                        run_spacing=8 if self.app.is_mobile else 3,
                         alignment=ft.MainAxisAlignment.START,
                         scroll=ft.ScrollMode.HIDDEN,
                         wrap=self.app.is_mobile,
@@ -158,7 +152,6 @@ class RecordingCardManager:
             "duration_label": duration_text_label,
             "speed_label": speed_text_label,
             "record_button": record_button,
-            "open_folder_button": open_folder_button,
             "recording_info_button": recording_info_button,
             "edit_button": edit_button,
             "monitor_button": monitor_button,
@@ -437,14 +430,6 @@ class RecordingCardManager:
         except Exception as e:
             logger.debug(f"Handle card click event failed: {e}")
 
-    async def recording_dir_on_click(self, recording: Recording):
-        if recording.recording_dir:
-            if os.path.exists(recording.recording_dir):
-                if not utils.open_folder(recording.recording_dir):
-                    await self.app.snack_bar.show_snack_bar(self._['no_video_file'])
-            else:
-                await self.app.snack_bar.show_snack_bar(self._["no_recording_folder"])
-
     async def edit_recording_button_click(self, _, recording: Recording):
         """Handle edit button click by showing the edit dialog with existing recording info."""
 
@@ -514,9 +499,6 @@ class RecordingCardManager:
 
     async def recording_button_on_click(self, _, recording: Recording):
         await self.on_toggle_recording(recording)
-
-    async def recording_dir_button_on_click(self, _, recording: Recording):
-        await self.recording_dir_on_click(recording)
 
     async def recording_info_button_on_click(self, _, recording: Recording):
         await self.show_recording_info_dialog(recording)
