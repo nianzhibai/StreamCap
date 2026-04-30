@@ -116,9 +116,20 @@ class StoragePage(BasePage):
         for name, is_dir, full_path in items:
             if is_mobile:
                 icon = ft.Icon(ft.icons.FOLDER, color=ft.colors.BLUE) if is_dir else ft.Icon(ft.icons.INSERT_DRIVE_FILE)
+                trailing = None
+                if not is_dir:
+                    trailing = ft.IconButton(
+                        icon=ft.icons.DELETE,
+                        icon_color=ft.colors.RED,
+                        tooltip=self._["delete_file"],
+                        on_click=lambda e, path=full_path: self.app.page.run_task(
+                            self.delete_file, path
+                        ),
+                    )
                 item = ft.ListTile(
                     leading=icon,
                     title=ft.Text(name),
+                    trailing=trailing,
                     on_click=lambda e, path=full_path, is_directory=is_dir: self.app.page.run_task(
                         self.navigate_to if is_directory else self.preview_file, 
                         path
@@ -131,12 +142,26 @@ class StoragePage(BasePage):
                         f"📁 {name}",
                         on_click=lambda e, path=full_path: self.app.page.run_task(self.navigate_to, path)
                     )
+                    buttons.append(btn)
                 else:
-                    btn = ft.ElevatedButton(
-                        f"📄 {name}",
-                        on_click=lambda e, path=full_path: self.app.page.run_task(self.preview_file, path)
+                    btn_row = ft.Row(
+                        [
+                            ft.ElevatedButton(
+                                f"📄 {name}",
+                                on_click=lambda e, path=full_path: self.app.page.run_task(self.preview_file, path)
+                            ),
+                            ft.IconButton(
+                                icon=ft.icons.DELETE,
+                                icon_color=ft.colors.RED,
+                                tooltip=self._["delete_file"],
+                                on_click=lambda e, path=full_path: self.app.page.run_task(
+                                    self.delete_file, path
+                                ),
+                            ),
+                        ],
+                        spacing=5,
                     )
-                buttons.append(btn)
+                    buttons.append(btn_row)
 
         self.file_list.controls.extend(buttons)
 
@@ -170,6 +195,49 @@ class StoragePage(BasePage):
         self.path_display.value = self._["current_path"] + ":" + self.current_path
         await self.update_file_list()
         self.content.update()
+
+    async def delete_file(self, file_path):
+        async def confirm_delete(_):
+            try:
+                os.remove(file_path)
+                logger.info(f"Deleted file: {file_path}")
+                await self.app.snack_bar.show_snack_bar(
+                    self._["delete_file_success"], bgcolor=ft.Colors.GREEN, duration=2000
+                )
+                await self.update_file_list()
+            except Exception as e:
+                logger.error(f"Failed to delete file {file_path}: {e}")
+                await self.app.snack_bar.show_snack_bar(self._["delete_file_failed"])
+            finally:
+                try:
+                    confirm_dialog.open = False
+                    self.app.dialog_area.update()
+                except Exception:
+                    pass
+
+        async def cancel_delete(_):
+            try:
+                confirm_dialog.open = False
+                self.app.dialog_area.update()
+            except Exception:
+                pass
+
+        confirm_dialog = ft.AlertDialog(
+            title=ft.Text(self._["delete_file"]),
+            content=ft.Text(self._["delete_file_confirm"]),
+            actions=[
+                ft.TextButton(self._["cancel"], on_click=cancel_delete),
+                ft.TextButton(self._["confirm"], on_click=confirm_delete),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            modal=True,
+        )
+        confirm_dialog.open = True
+        self.app.dialog_area.content = confirm_dialog
+        try:
+            self.app.page.update()
+        except Exception as e:
+            logger.debug(f"Show delete dialog failed: {e}")
 
     async def preview_file(self, file_path, room_url=None):
         import urllib.parse

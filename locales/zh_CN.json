@@ -457,7 +457,11 @@
     "copy_stream_url": "复制直播源地址",
     "copy_video_url": "复制视频地址",
     "copy_success": "复制成功",
-    "video_api_server_not_set": "未设置视频播放服务器地址 ⚠️"
+    "video_api_server_not_set": "未设置视频播放服务器地址 ⚠️",
+    "delete_file": "删除文件",
+    "delete_file_confirm": "确定要删除该文件吗？",
+    "delete_file_success": "文件删除成功",
+    "delete_file_failed": "文件删除失败"
   },
   "video_player": {
     "open_live_room_page": "打开直播间页面",

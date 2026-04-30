@@ -128,9 +128,9 @@ class RecordingCardManager:
                     speed_text_label,
                     ft.Row(
                         action_buttons,
-                        spacing=3,
+                        spacing=5 if self.app.is_mobile else 3,
                         run_spacing=3,
-                        alignment=ft.MainAxisAlignment.START,
+                        alignment=ft.MainAxisAlignment.SPACE_EVENLY if self.app.is_mobile else ft.MainAxisAlignment.START,
                         scroll=ft.ScrollMode.HIDDEN,
                         wrap=False,
                     ),
