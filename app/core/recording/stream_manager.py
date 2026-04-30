@@ -50,6 +50,7 @@ class LiveStreamRecorder:
         self.direct_downloader = None
         self.min_valid_recording_duration = 25
         self.recording_start_time = 0
+        self.segment_limit_reached = False
         os.makedirs(self.output_dir, exist_ok=True)
         self.app.language_manager.add_observer(self)
         self._ = {}
@@ -299,7 +300,7 @@ class LiveStreamRecorder:
             logger.error(f"Failed to remove recorder instance: {e}")
 
     async def recheck_live_status(self):
-        if not self.should_stop:
+        if not self.should_stop and not self.segment_limit_reached:
             # not manually stopped
             recording_duration = time.time() - self.recording_start_time
             if recording_duration > self.min_valid_recording_duration:
@@ -307,6 +308,14 @@ class LiveStreamRecorder:
                     self.app.page.run_task(self.app.record_manager.check_if_live, self.recording)
             else:
                 self.recording.status_info = RecordingStatus.RECORDING_ERROR
+
+    def mark_segment_limit_reached(self):
+        self.segment_limit_reached = True
+        self.recording.monitor_status = False
+        self.recording.is_live = True
+        self.recording.is_checking = False
+        self.recording.status_info = RecordingStatus.SEGMENT_LIMIT_REACHED
+        self.recording.display_title = f"[{self._['segment_limit_reached']}] {self.recording.title}"
 
     async def monitor_segment_count(self, save_path):
         """监控分段录制数量，达到设定值时自动停止"""
@@ -329,7 +338,12 @@ class LiveStreamRecorder:
             if len(segment_files) >= self.segment_count:
                 logger.info(f"Reached segment count limit {self.segment_count}, stopping recording")
                 self.should_stop = True
+                self.mark_segment_limit_reached()
                 await self.app.record_manager.stop_monitor_recording(self.recording, auto_save=True)
+                self.mark_segment_limit_reached()
+                self.app.page.run_task(self.app.record_card_manager.update_card, self.recording)
+                self.app.page.pubsub.send_others_on_topic("update", self.recording)
+                self.app.page.run_task(self.app.record_manager.persist_recordings)
                 break
 
     async def start_ffmpeg(
@@ -427,9 +441,13 @@ class LiveStreamRecorder:
                         logger.debug(f"Failed to update UI: {e}")
 
             if return_code in safe_return_code:
-                self.recording.is_live = False
+                if not self.segment_limit_reached:
+                    self.recording.is_live = False
                 if not self.recording.is_recording:
-                    if self.recording.monitor_status:
+                    if self.segment_limit_reached:
+                        self.mark_segment_limit_reached()
+                        display_title = self.recording.display_title
+                    elif self.recording.monitor_status:
                         self.recording.status_info = RecordingStatus.MONITORING
                         display_title = self.recording.title
                     else:
@@ -734,8 +752,12 @@ class LiveStreamRecorder:
             self.recording.is_recording = False
 
             if not self.recording.is_recording:
-                self.recording.is_live = False
-                if self.recording.monitor_status:
+                if not self.segment_limit_reached:
+                    self.recording.is_live = False
+                if self.segment_limit_reached:
+                    self.mark_segment_limit_reached()
+                    display_title = self.recording.display_title
+                elif self.recording.monitor_status:
                     self.recording.status_info = RecordingStatus.MONITORING
                     display_title = self.recording.title
                 else:

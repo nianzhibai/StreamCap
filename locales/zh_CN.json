@@ -133,6 +133,8 @@
     "NOT_RECORDING_SPACE": "磁盘空间不足, 无法录制",
     "LIVE_STATUS_CHECK_ERROR": "直播状态检测错误, 请检查地址是否可正常访问",
     "LIVE_BROADCASTING": "正在直播中",
+    "SEGMENT_LIMIT_REACHED": "已达到录制段数, 停止录制和监控",
+    "segment_limit_reached": "已达到录制段数",
     "not_disk_space_tip": "磁盘存储空间不足, 停止录制 ⚠️",
     "notify": "通知",
     "live_recording_stopped_message": "直播录制已结束！",

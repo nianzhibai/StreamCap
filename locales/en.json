@@ -133,6 +133,8 @@
     "NOT_RECORDING_SPACE": "Insufficient disk space to record",
     "LIVE_STATUS_CHECK_ERROR": "Live status error, check address accessibility",
     "LIVE_BROADCASTING": "Live Broadcasting",
+    "SEGMENT_LIMIT_REACHED": "Segment count reached, recording and monitoring stopped",
+    "segment_limit_reached": "Segment count reached",
     "not_disk_space_tip": "Insufficient disk storage space, stop recording ⚠️",
     "notify": "Notify",
     "live_recording_stopped_message": "Live room recording has been stopped",
