@@ -41,13 +41,19 @@ class RecordingsPage(PageBase):
 
     def init(self):
         self.loading_indicator = ft.ProgressRing(
-            width=40, 
-            height=40, 
+            width=40,
+            height=40,
             stroke_width=3,
             visible=False
         )
-        
-        if self.is_grid_view:
+
+        column_width = self.get_grid_column_width()
+        page_width = self.page.width or 0
+        runs_count = max(1, int(page_width / column_width)) if page_width else (1 if self.app.is_mobile else 3)
+
+        if runs_count == 1:
+            initial_content = ft.ListView(expand=True, spacing=10, padding=10, controls=[])
+        elif self.is_grid_view:
             initial_content = ft.GridView(
                 expand=True,
                 runs_count=3,
@@ -58,11 +64,11 @@ class RecordingsPage(PageBase):
             )
         else:
             initial_content = ft.Column(
-                controls=[], 
-                spacing=5, 
+                controls=[],
+                spacing=5,
                 expand=True
             )
-        
+
         self.recording_card_area = ft.Container(
             content=initial_content,
             expand=True
@@ -109,28 +115,31 @@ class RecordingsPage(PageBase):
         )
 
     async def toggle_view_mode(self, _):
-        self.is_grid_view = not self.is_grid_view
         current_content = self.recording_card_area.content
         current_controls = current_content.controls if hasattr(current_content, 'controls') else []
 
         column_width = self.get_grid_column_width()
         runs_count = max(1, int(self.page.width / column_width))
 
-        if self.is_grid_view:
-            new_content = ft.GridView(
-                expand=True,
-                runs_count=runs_count,
-                spacing=10,
-                run_spacing=10,
-                child_aspect_ratio=self.get_grid_child_aspect_ratio(),
-                controls=current_controls
-            )
+        if runs_count == 1:
+            new_content = ft.ListView(expand=True, spacing=10, padding=10, controls=current_controls)
         else:
-            new_content = ft.Column(
-                controls=current_controls,
-                spacing=5,
-                expand=True
-            )
+            self.is_grid_view = not self.is_grid_view
+            if self.is_grid_view:
+                new_content = ft.GridView(
+                    expand=True,
+                    runs_count=runs_count,
+                    spacing=10,
+                    run_spacing=10,
+                    child_aspect_ratio=self.get_grid_child_aspect_ratio(),
+                    controls=current_controls
+                )
+            else:
+                new_content = ft.Column(
+                    controls=current_controls,
+                    spacing=5,
+                    expand=True
+                )
 
         self.recording_card_area.content = new_content
         self.content_area.clean()
@@ -719,24 +728,47 @@ class RecordingsPage(PageBase):
         self.page.run_task(self.recalculate_grid_columns)
 
     async def recalculate_grid_columns(self):
-        if not self.is_grid_view:
-            return
-
         column_width = self.get_grid_column_width()
         child_aspect_ratio = self.get_grid_child_aspect_ratio()
         runs_count = max(1, int(self.page.width / column_width))
 
+        if runs_count == 1:
+            if isinstance(self.recording_card_area.content, ft.GridView):
+                current_controls = self.recording_card_area.content.controls
+                self.recording_card_area.content = ft.ListView(
+                    expand=True, spacing=10, padding=10, controls=current_controls
+                )
+                self.recording_card_area.update()
+            return
+
+        if not self.is_grid_view:
+            return
+
         if isinstance(self.recording_card_area.content, ft.GridView):
             grid_view = self.recording_card_area.content
             grid_view.runs_count = runs_count
-            
+
             grid_view.child_aspect_ratio = child_aspect_ratio
-            
+
             if self.app.is_mobile:
                 grid_view.spacing = 5
                 grid_view.run_spacing = 5
-            
+
             grid_view.update()
+        elif isinstance(self.recording_card_area.content, ft.ListView):
+            current_controls = self.recording_card_area.content.controls
+            self.recording_card_area.content = ft.GridView(
+                expand=True,
+                runs_count=runs_count,
+                spacing=10,
+                run_spacing=10,
+                child_aspect_ratio=child_aspect_ratio,
+                controls=current_controls
+            )
+            if self.app.is_mobile:
+                self.recording_card_area.content.spacing = 5
+                self.recording_card_area.content.run_spacing = 5
+            self.recording_card_area.update()
 
     async def on_keyboard(self, e: ft.KeyboardEvent):
         if e.alt and e.key == "H":
