@@ -199,11 +199,52 @@ class StoragePage(BasePage):
     async def delete_file(self, file_path):
         async def confirm_delete(_):
             try:
-                os.remove(file_path)
-                logger.info(f"Deleted file: {file_path}")
-                await self.app.snack_bar.show_snack_bar(
-                    self._["delete_file_success"], bgcolor=ft.Colors.GREEN, duration=2000
-                )
+                # 获取文件基础名（不含扩展名）
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
+                parent_dir = os.path.dirname(file_path)
+                original_dir = os.path.join(parent_dir, "original")
+
+                # 收集要删除的文件
+                files_to_delete = []
+                search_dirs = [parent_dir]
+                if os.path.isdir(original_dir):
+                    search_dirs.append(original_dir)
+
+                for search_dir in search_dirs:
+                    if not os.path.exists(search_dir):
+                        continue
+                    for filename in os.listdir(search_dir):
+                        file_base = os.path.splitext(filename)[0]
+                        if file_base == base_name:
+                            full_path = os.path.join(search_dir, filename)
+                            if os.path.isfile(full_path):
+                                files_to_delete.append(full_path)
+
+                if not files_to_delete:
+                    logger.warning(f"No files found to delete for: {file_path}")
+                    await self.app.snack_bar.show_snack_bar(
+                        self._["delete_file_not_found"], bgcolor=ft.Colors.ORANGE, duration=3000
+                    )
+                    await self.update_file_list()
+                    return
+
+                # 删除所有匹配的文件
+                deleted_count = 0
+                for f in files_to_delete:
+                    try:
+                        os.remove(f)
+                        logger.info(f"Deleted file: {f}")
+                        deleted_count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to delete {f}: {e}")
+
+                if deleted_count > 0:
+                    await self.app.snack_bar.show_snack_bar(
+                        self._["delete_file_success"], bgcolor=ft.Colors.GREEN, duration=2000
+                    )
+                else:
+                    await self.app.snack_bar.show_snack_bar(self._["delete_file_failed"])
+
                 await self.update_file_list()
             except Exception as e:
                 logger.error(f"Failed to delete file {file_path}: {e}")

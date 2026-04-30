@@ -459,9 +459,10 @@
     "copy_success": "Copy Success",
     "video_api_server_not_set": "Video play server address not set ⚠️",
     "delete_file": "Delete File",
-    "delete_file_confirm": "Are you sure you want to delete this file?",
+    "delete_file_confirm": "Are you sure you want to delete this file? (This will delete both ts and mp4 files with the same name)",
     "delete_file_success": "File deleted successfully",
-    "delete_file_failed": "Failed to delete file"
+    "delete_file_failed": "Failed to delete file",
+    "delete_file_not_found": "File no longer exists (may have been transcoded or moved) ⚠️"
   },
   "video_player": {
     "open_live_room_page": "Open Live Room Page",
